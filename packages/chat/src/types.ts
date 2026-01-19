@@ -1121,10 +1121,12 @@ export type ReactionHandler = (event: ReactionEvent) => Promise<void>;
  * ```
  */
 export interface ActionEvent<TRawMessage = unknown> {
-  /** The action ID from the button (matches Button's `id` prop) */
+  /** The action ID from the button or select (matches Button/Select `id` prop) */
   actionId: string;
-  /** Optional value/payload from the button */
+  /** Optional value/payload from the action (button value or selected option) */
   value?: string;
+  /** All form input values from the card (useful for Teams where inputs are submitted together) */
+  inputs?: Record<string, string>;
   /** User who clicked the button */
   user: Author;
   /** The thread where the action occurred */

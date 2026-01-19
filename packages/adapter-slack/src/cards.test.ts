@@ -7,7 +7,9 @@ import {
   Field,
   Fields,
   Image,
+  Option,
   Section,
+  Select,
 } from "chat";
 import { describe, expect, it } from "vitest";
 import { cardToBlockKit, cardToFallbackText } from "./cards";
@@ -222,6 +224,101 @@ describe("cardToBlockKit", () => {
     expect(blocks[4].type).toBe("section");
     expect(blocks[5].type).toBe("actions");
   });
+
+  it("converts select dropdown", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Select priority...",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Medium", value: "medium" }),
+            Option({ label: "Low", value: "low", description: "Non-urgent" }),
+          ],
+        }),
+      ],
+    });
+    const blocks = cardToBlockKit(card);
+
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].type).toBe("actions");
+
+    const elements = blocks[0].elements as Array<{
+      type: string;
+      action_id: string;
+      placeholder?: { type: string; text: string; emoji: boolean };
+      options: Array<{
+        text: { type: string; text: string; emoji: boolean };
+        value: string;
+        description?: { type: string; text: string; emoji: boolean };
+      }>;
+    }>;
+    expect(elements).toHaveLength(1);
+
+    const select = elements[0];
+    expect(select.type).toBe("static_select");
+    expect(select.action_id).toBe("priority");
+    expect(select.placeholder).toEqual({
+      type: "plain_text",
+      text: "Select priority...",
+      emoji: true,
+    });
+    expect(select.options).toHaveLength(3);
+    expect(select.options[0]).toEqual({
+      text: { type: "plain_text", text: "High", emoji: true },
+      value: "high",
+    });
+    expect(select.options[1]).toEqual({
+      text: { type: "plain_text", text: "Medium", emoji: true },
+      value: "medium",
+    });
+    expect(select.options[2]).toEqual({
+      text: { type: "plain_text", text: "Low", emoji: true },
+      value: "low",
+      description: { type: "plain_text", text: "Non-urgent", emoji: true },
+    });
+  });
+
+  it("converts select without placeholder", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "status",
+          options: [
+            Option({ label: "Active", value: "active" }),
+            Option({ label: "Inactive", value: "inactive" }),
+          ],
+        }),
+      ],
+    });
+    const blocks = cardToBlockKit(card);
+
+    const elements = blocks[0].elements as Array<{
+      type: string;
+      placeholder?: unknown;
+    }>;
+    expect(elements[0].placeholder).toBeUndefined();
+  });
+
+  it("converts card with select and buttons", () => {
+    const card = Card({
+      title: "Task Form",
+      children: [
+        Select({
+          id: "priority",
+          options: [Option({ label: "High", value: "high" })],
+        }),
+        Actions([Button({ id: "submit", label: "Submit", style: "primary" })]),
+      ],
+    });
+    const blocks = cardToBlockKit(card);
+
+    expect(blocks).toHaveLength(3); // header + select actions + button actions
+    expect(blocks[0].type).toBe("header");
+    expect(blocks[1].type).toBe("actions"); // select wrapped in actions
+    expect(blocks[2].type).toBe("actions"); // buttons
+  });
 });
 
 describe("cardToFallbackText", () => {
@@ -256,5 +353,25 @@ describe("cardToFallbackText", () => {
     const card = Card({ title: "Simple Card" });
     const text = cardToFallbackText(card);
     expect(text).toBe("*Simple Card*");
+  });
+
+  it("generates fallback text for select", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Choose priority",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+
+    const text = cardToFallbackText(card);
+    expect(text).toContain("Choose priority");
+    expect(text).toContain("High");
+    expect(text).toContain("Low");
   });
 });

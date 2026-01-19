@@ -19,6 +19,7 @@ import type {
   FieldsElement,
   ImageElement,
   SectionElement,
+  SelectElement,
   TextElement,
 } from "chat";
 
@@ -132,6 +133,8 @@ function convertChildToAdaptive(child: CardChild): ConvertResult {
       return convertSectionToElements(child);
     case "fields":
       return { elements: [convertFieldsToElement(child)], actions: [] };
+    case "select":
+      return { elements: [convertSelectToElement(child)], actions: [] };
     default:
       return { elements: [], actions: [] };
   }
@@ -174,12 +177,27 @@ function convertDividerToElement(
 }
 
 function convertActionsToElements(element: ActionsElement): ConvertResult {
-  // In Adaptive Cards, actions go at the card level, not inline
+  // Buttons become Action.Submit and go at the card level
   const actions: AdaptiveCardAction[] = element.children.map((button) =>
     convertButtonToAction(button),
   );
 
   return { elements: [], actions };
+}
+
+function convertSelectToElement(select: SelectElement): AdaptiveCardElement {
+  return {
+    type: "Input.ChoiceSet",
+    id: select.id,
+    placeholder: select.placeholder
+      ? convertEmoji(select.placeholder)
+      : undefined,
+    choices: select.options.map((option) => ({
+      title: convertEmoji(option.label),
+      value: option.value,
+    })),
+    style: "compact", // dropdown style
+  };
 }
 
 function convertButtonToAction(button: ButtonElement): AdaptiveCardAction {

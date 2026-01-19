@@ -7,7 +7,9 @@ import {
   Field,
   Fields,
   Image,
+  Option,
   Section,
+  Select,
 } from "chat";
 import { describe, expect, it } from "vitest";
 import { cardToFallbackText, cardToGoogleCard } from "./cards";
@@ -309,6 +311,101 @@ describe("cardToGoogleCard", () => {
     expect(gchatCard.card.sections).toHaveLength(1);
     expect(gchatCard.card.sections[0].widgets).toHaveLength(1);
   });
+
+  it("converts select dropdown to selectionInput", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Select priority...",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Medium", value: "medium" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+    const gchatCard = cardToGoogleCard(card);
+
+    const widgets = gchatCard.card.sections[0].widgets;
+    expect(widgets).toHaveLength(1);
+
+    const selectionInput = widgets[0].selectionInput;
+    expect(selectionInput).toBeDefined();
+    expect(selectionInput?.name).toBe("priority");
+    expect(selectionInput?.label).toBe("Select priority...");
+    expect(selectionInput?.type).toBe("DROPDOWN");
+    expect(selectionInput?.items).toHaveLength(3);
+    expect(selectionInput?.items[0]).toEqual({ text: "High", value: "high" });
+    expect(selectionInput?.items[1]).toEqual({
+      text: "Medium",
+      value: "medium",
+    });
+    expect(selectionInput?.items[2]).toEqual({ text: "Low", value: "low" });
+  });
+
+  it("converts select without placeholder", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "status",
+          options: [
+            Option({ label: "Active", value: "active" }),
+            Option({ label: "Inactive", value: "inactive" }),
+          ],
+        }),
+      ],
+    });
+    const gchatCard = cardToGoogleCard(card);
+
+    const selectionInput = gchatCard.card.sections[0].widgets[0].selectionInput;
+    expect(selectionInput?.label).toBeUndefined();
+  });
+
+  it("converts select with endpointUrl for onChangeAction", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          options: [Option({ label: "High", value: "high" })],
+        }),
+      ],
+    });
+    const gchatCard = cardToGoogleCard(card, {
+      endpointUrl: "https://example.com/api/webhooks/gchat",
+    });
+
+    const selectionInput = gchatCard.card.sections[0].widgets[0].selectionInput;
+    expect(selectionInput?.onChangeAction).toEqual({
+      function: "https://example.com/api/webhooks/gchat",
+      parameters: [{ key: "actionId", value: "priority" }],
+    });
+  });
+
+  it("converts card with select and buttons", () => {
+    const card = Card({
+      title: "Task Form",
+      children: [
+        CardText("Choose a priority:"),
+        Select({
+          id: "priority",
+          options: [Option({ label: "High", value: "high" })],
+        }),
+        Actions([Button({ id: "submit", label: "Submit", style: "primary" })]),
+      ],
+    });
+    const gchatCard = cardToGoogleCard(card);
+
+    expect(gchatCard.card.header?.title).toBe("Task Form");
+    const widgets = gchatCard.card.sections[0].widgets;
+
+    // text + select + buttonList = 3 widgets
+    expect(widgets).toHaveLength(3);
+    expect(widgets[0].textParagraph).toBeDefined();
+    expect(widgets[1].selectionInput).toBeDefined();
+    expect(widgets[2].buttonList).toBeDefined();
+  });
 });
 
 describe("cardToFallbackText", () => {
@@ -343,5 +440,25 @@ describe("cardToFallbackText", () => {
     const card = Card({ title: "Simple Card" });
     const text = cardToFallbackText(card);
     expect(text).toBe("*Simple Card*");
+  });
+
+  it("generates fallback text for select", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Choose priority",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+
+    const text = cardToFallbackText(card);
+    expect(text).toContain("Choose priority");
+    expect(text).toContain("High");
+    expect(text).toContain("Low");
   });
 });

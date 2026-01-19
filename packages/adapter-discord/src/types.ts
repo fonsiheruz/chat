@@ -121,11 +121,34 @@ export interface DiscordButton {
 }
 
 /**
+ * Discord string select menu option.
+ */
+export interface DiscordSelectOption {
+  label: string;
+  value: string;
+  description?: string;
+  default?: boolean;
+}
+
+/**
+ * Discord string select menu component.
+ */
+export interface DiscordSelectMenu {
+  type: 3; // Component type for string select menu
+  custom_id: string;
+  options: DiscordSelectOption[];
+  placeholder?: string;
+  min_values?: number;
+  max_values?: number;
+  disabled?: boolean;
+}
+
+/**
  * Discord action row component.
  */
 export interface DiscordActionRow {
   type: 1; // Component type for action row
-  components: DiscordButton[];
+  components: (DiscordButton | DiscordSelectMenu)[];
 }
 
 /**

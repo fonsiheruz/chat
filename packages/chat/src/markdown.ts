@@ -436,6 +436,10 @@ export abstract class BaseFormatConverter implements FormatConverter {
           .join("\n");
       case "actions":
         return `[${child.children.map((b) => b.label).join("] [")}]`;
+      case "select": {
+        const optionLabels = child.options.map((o) => o.label).join(", ");
+        return `[${child.placeholder || "Select"}: ${optionLabels}]`;
+      }
       case "section":
         return child.children
           .map((c) => this.cardChildToFallbackText(c))

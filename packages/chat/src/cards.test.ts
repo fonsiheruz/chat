@@ -8,7 +8,9 @@ import {
   Fields,
   Image,
   isCardElement,
+  Option,
   Section,
+  Select,
   Text,
 } from "./cards";
 
@@ -158,6 +160,59 @@ describe("Card Builder Functions", () => {
     });
   });
 
+  describe("Option", () => {
+    it("creates an option element", () => {
+      const option = Option({ label: "High Priority", value: "high" });
+      expect(option.type).toBe("option");
+      expect(option.label).toBe("High Priority");
+      expect(option.value).toBe("high");
+      expect(option.description).toBeUndefined();
+    });
+
+    it("creates an option with description", () => {
+      const option = Option({
+        label: "Low Priority",
+        value: "low",
+        description: "For non-urgent items",
+      });
+      expect(option.label).toBe("Low Priority");
+      expect(option.value).toBe("low");
+      expect(option.description).toBe("For non-urgent items");
+    });
+  });
+
+  describe("Select", () => {
+    it("creates a select element", () => {
+      const select = Select({
+        id: "priority",
+        options: [
+          Option({ label: "High", value: "high" }),
+          Option({ label: "Low", value: "low" }),
+        ],
+      });
+      expect(select.type).toBe("select");
+      expect(select.id).toBe("priority");
+      expect(select.placeholder).toBeUndefined();
+      expect(select.options).toHaveLength(2);
+      expect(select.options[0].label).toBe("High");
+      expect(select.options[1].value).toBe("low");
+    });
+
+    it("creates a select with placeholder", () => {
+      const select = Select({
+        id: "status",
+        placeholder: "Choose a status...",
+        options: [Option({ label: "Active", value: "active" })],
+      });
+      expect(select.placeholder).toBe("Choose a status...");
+    });
+
+    it("creates an empty select", () => {
+      const select = Select({ id: "empty", options: [] });
+      expect(select.options).toEqual([]);
+    });
+  });
+
   describe("isCardElement", () => {
     it("returns true for CardElement", () => {
       const card = Card({ title: "Test" });
@@ -231,6 +286,38 @@ describe("Card Composition", () => {
       expect(actions.children).toHaveLength(2);
       expect(actions.children[0].id).toBe("track");
       expect(actions.children[1].value).toBe("order-1234");
+    }
+  });
+
+  it("creates a card with Select as CardChild", () => {
+    const card = Card({
+      title: "Task Form",
+      children: [
+        Text("Create a new task"),
+        Select({
+          id: "priority",
+          placeholder: "Select priority...",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Medium", value: "medium" }),
+            Option({ label: "Low", value: "low", description: "Non-urgent" }),
+          ],
+        }),
+        Actions([Button({ id: "submit", label: "Create", style: "primary" })]),
+      ],
+    });
+
+    expect(card.children).toHaveLength(3);
+    expect(card.children[0].type).toBe("text");
+    expect(card.children[1].type).toBe("select");
+    expect(card.children[2].type).toBe("actions");
+
+    const select = card.children[1];
+    if (select.type === "select") {
+      expect(select.id).toBe("priority");
+      expect(select.placeholder).toBe("Select priority...");
+      expect(select.options).toHaveLength(3);
+      expect(select.options[2].description).toBe("Non-urgent");
     }
   });
 });

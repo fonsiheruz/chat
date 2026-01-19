@@ -20,7 +20,9 @@ import {
   Fields,
   fromReactElement,
   Image,
+  Option,
   Section,
+  Select,
   Text,
 } from "./cards";
 
@@ -213,6 +215,82 @@ describe("fromReactElement - React JSX mode", () => {
         expect(result.children[0].label).toBe("Name");
         expect(result.children[0].value).toBe("John Doe");
         expect(result.children[1].label).toBe("Email");
+      }
+    });
+  });
+
+  describe("Select and Option conversion", () => {
+    it("converts Select with Option children", () => {
+      const reactSelect = createReactElement(Select, {
+        id: "priority",
+        placeholder: "Select priority...",
+        children: [
+          createReactElement(Option, { value: "high", children: "High" }),
+          createReactElement(Option, { value: "medium", children: "Medium" }),
+          createReactElement(Option, {
+            value: "low",
+            description: "For non-urgent items",
+            children: "Low",
+          }),
+        ],
+      });
+
+      const result = fromReactElement(reactSelect);
+      expect(result?.type).toBe("select");
+      if (result?.type === "select") {
+        expect(result.id).toBe("priority");
+        expect(result.placeholder).toBe("Select priority...");
+        expect(result.options).toHaveLength(3);
+        expect(result.options[0].label).toBe("High");
+        expect(result.options[0].value).toBe("high");
+        expect(result.options[1].label).toBe("Medium");
+        expect(result.options[2].label).toBe("Low");
+        expect(result.options[2].description).toBe("For non-urgent items");
+      }
+    });
+
+    it("converts Select as CardChild in Card", () => {
+      const reactCard = createReactElement(Card, {
+        title: "Task Form",
+        children: [
+          createReactElement(Text, { children: "Choose a priority:" }),
+          createReactElement(Select, {
+            id: "priority",
+            children: [
+              createReactElement(Option, { value: "high", children: "High" }),
+              createReactElement(Option, { value: "low", children: "Low" }),
+            ],
+          }),
+        ],
+      });
+
+      const result = fromReactElement(reactCard);
+      expect(result?.type).toBe("card");
+      if (result?.type === "card") {
+        expect(result.children).toHaveLength(2);
+        expect(result.children[0].type).toBe("text");
+        expect(result.children[1].type).toBe("select");
+        if (result.children[1].type === "select") {
+          expect(result.children[1].id).toBe("priority");
+          expect(result.children[1].options).toHaveLength(2);
+        }
+      }
+    });
+
+    it("converts Option with label prop instead of children", () => {
+      const reactSelect = createReactElement(Select, {
+        id: "status",
+        children: [
+          createReactElement(Option, { label: "Active", value: "active" }),
+          createReactElement(Option, { label: "Inactive", value: "inactive" }),
+        ],
+      });
+
+      const result = fromReactElement(reactSelect);
+      expect(result?.type).toBe("select");
+      if (result?.type === "select") {
+        expect(result.options[0].label).toBe("Active");
+        expect(result.options[1].label).toBe("Inactive");
       }
     });
   });

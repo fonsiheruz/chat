@@ -19,6 +19,7 @@ import type {
   FieldsElement,
   ImageElement,
   SectionElement,
+  SelectElement,
   TextElement,
 } from "chat";
 
@@ -46,6 +47,19 @@ interface SlackButtonElement {
   action_id: string;
   value?: string;
   style?: "primary" | "danger";
+}
+
+interface SlackSelectOption {
+  text: SlackTextObject;
+  value: string;
+  description?: SlackTextObject;
+}
+
+interface SlackSelectElement {
+  type: "static_select";
+  action_id: string;
+  placeholder?: SlackTextObject;
+  options: SlackSelectOption[];
 }
 
 /**
@@ -114,6 +128,8 @@ function convertChildToBlocks(child: CardChild): SlackBlock[] {
       return convertSectionToBlocks(child);
     case "fields":
       return [convertFieldsToBlock(child)];
+    case "select":
+      return [convertSelectToBlock(child)];
     default:
       return [];
   }
@@ -187,6 +203,45 @@ function convertButtonToElement(button: ButtonElement): SlackButtonElement {
   }
 
   return element;
+}
+
+function convertSelectToBlock(select: SelectElement): SlackBlock {
+  const selectElement: SlackSelectElement = {
+    type: "static_select",
+    action_id: select.id,
+    options: select.options.map((option) => {
+      const slackOption: SlackSelectOption = {
+        text: {
+          type: "plain_text",
+          text: convertEmoji(option.label),
+          emoji: true,
+        },
+        value: option.value,
+      };
+      if (option.description) {
+        slackOption.description = {
+          type: "plain_text",
+          text: convertEmoji(option.description),
+          emoji: true,
+        };
+      }
+      return slackOption;
+    }),
+  };
+
+  if (select.placeholder) {
+    selectElement.placeholder = {
+      type: "plain_text",
+      text: convertEmoji(select.placeholder),
+      emoji: true,
+    };
+  }
+
+  // Wrap in an actions block
+  return {
+    type: "actions",
+    elements: [selectElement],
+  };
 }
 
 function convertSectionToBlocks(element: SectionElement): SlackBlock[] {

@@ -54,6 +54,28 @@ export type ButtonStyle = "primary" | "danger" | "default";
 /** Text style options */
 export type TextStyle = "plain" | "bold" | "muted";
 
+/** Option element for Select dropdowns */
+export interface OptionElement {
+  type: "option";
+  /** Display label for the option */
+  label: string;
+  /** Value sent with action callback when selected */
+  value: string;
+  /** Optional description shown below the label (supported on some platforms) */
+  description?: string;
+}
+
+/** Select dropdown element for interactive choices */
+export interface SelectElement {
+  type: "select";
+  /** Unique action ID for callback routing */
+  id: string;
+  /** Placeholder text shown when no option is selected */
+  placeholder?: string;
+  /** Available options */
+  options: OptionElement[];
+}
+
 /** Button element for interactive actions */
 export interface ButtonElement {
   type: "button";
@@ -127,10 +149,17 @@ export type CardChild =
   | DividerElement
   | ActionsElement
   | SectionElement
-  | FieldsElement;
+  | FieldsElement
+  | SelectElement;
 
 /** Union of all element types (including nested children) */
-type AnyCardElement = CardChild | CardElement | ButtonElement | FieldElement;
+type AnyCardElement =
+  | CardChild
+  | CardElement
+  | ButtonElement
+  | FieldElement
+  | SelectElement
+  | OptionElement;
 
 /** Root card element */
 export interface CardElement {
@@ -315,6 +344,69 @@ export function Button(options: ButtonOptions): ButtonElement {
   };
 }
 
+/** Options for Option */
+export interface OptionOptions {
+  /** Display label for the option */
+  label: string;
+  /** Value sent with action callback when selected */
+  value: string;
+  /** Optional description shown below the label (supported on some platforms) */
+  description?: string;
+}
+
+/**
+ * Create an Option element for use in Select dropdowns.
+ *
+ * @example
+ * ```ts
+ * Option({ label: "High Priority", value: "high" })
+ * Option({ label: "Low Priority", value: "low", description: "For non-urgent items" })
+ * ```
+ */
+export function Option(options: OptionOptions): OptionElement {
+  return {
+    type: "option",
+    label: options.label,
+    value: options.value,
+    description: options.description,
+  };
+}
+
+/** Options for Select */
+export interface SelectOptions {
+  /** Unique action ID for callback routing */
+  id: string;
+  /** Placeholder text shown when no option is selected */
+  placeholder?: string;
+  /** Available options */
+  options: OptionElement[];
+}
+
+/**
+ * Create a Select dropdown element.
+ *
+ * @example
+ * ```ts
+ * Select({
+ *   id: "priority",
+ *   placeholder: "Select priority...",
+ *   options: [
+ *     Option({ label: "High", value: "high" }),
+ *     Option({ label: "Medium", value: "medium" }),
+ *     Option({ label: "Low", value: "low" }),
+ *   ],
+ * })
+ * ```
+ */
+export function Select(options: SelectOptions): SelectElement {
+  return {
+    type: "select",
+    id: options.id,
+    placeholder: options.placeholder,
+    options: options.options,
+  };
+}
+
 /**
  * Create a Field element for key-value display.
  *
@@ -391,6 +483,8 @@ const componentMap = new Map<unknown, string>([
   [Button, "Button"],
   [Field, "Field"],
   [Fields, "Fields"],
+  [Select, "Select"],
+  [Option, "Option"],
 ]);
 
 /**
@@ -432,7 +526,7 @@ export function fromReactElement(element: unknown): AnyCardElement | null {
     if (typeof type === "string") {
       throw new Error(
         `HTML element <${type}> is not supported in card elements. ` +
-          `Use Card, Text, Section, Actions, Button, Fields, Field, Image, or Divider components instead.`,
+          `Use Card, Text, Section, Actions, Button, Select, Option, Fields, Field, Image, or Divider components instead.`,
       );
     }
 
@@ -450,7 +544,10 @@ export function fromReactElement(element: unknown): AnyCardElement | null {
 
   // Helper to filter for CardChild elements
   const isCardChild = (el: AnyCardElement): el is CardChild =>
-    el.type !== "card" && el.type !== "button" && el.type !== "field";
+    el.type !== "card" &&
+    el.type !== "button" &&
+    el.type !== "field" &&
+    el.type !== "option";
 
   // Call the appropriate builder function based on component type
   switch (componentName) {
@@ -508,6 +605,27 @@ export function fromReactElement(element: unknown): AnyCardElement | null {
       return Fields(
         convertedChildren.filter((c): c is FieldElement => c.type === "field"),
       );
+
+    case "Select":
+      // JSX: <Select id="x" placeholder="..."><Option .../></Select>
+      return Select({
+        id: props.id as string,
+        placeholder: props.placeholder as string | undefined,
+        options: convertedChildren.filter(
+          (c): c is OptionElement => c.type === "option",
+        ),
+      });
+
+    case "Option":
+      // JSX: <Option value="x" description="...">Label</Option>
+      // or: <Option label="Label" value="x" />
+      return Option({
+        label:
+          (props.label as string | undefined) ??
+          extractTextContent(props.children),
+        value: props.value as string,
+        description: props.description as string | undefined,
+      });
 
     default:
       return null;
@@ -595,6 +713,10 @@ function childToFallbackText(child: CardChild): string | null {
       return child.children.map((f) => `${f.label}: ${f.value}`).join("\n");
     case "actions":
       return `[${child.children.map((b) => b.label).join("] [")}]`;
+    case "select": {
+      const optionLabels = child.options.map((o) => o.label).join(", ");
+      return `[${child.placeholder || "Select"}: ${optionLabels}]`;
+    }
     case "section":
       return child.children
         .map((c) => childToFallbackText(c))

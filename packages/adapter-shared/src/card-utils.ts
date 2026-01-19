@@ -139,6 +139,12 @@ function childToFallbackText(
         .join("\n");
     case "actions":
       return `[${child.children.map((b) => convertText(b.label)).join("] [")}]`;
+    case "select": {
+      const optionLabels = child.options
+        .map((o) => convertText(o.label))
+        .join(", ");
+      return `[${convertText(child.placeholder || "Select")}: ${optionLabels}]`;
+    }
     case "section":
       return child.children
         .map((c) => childToFallbackText(c, convertText))

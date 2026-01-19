@@ -14,7 +14,9 @@ import {
   fromReactElement as _fromReactElement,
   Image as _Image,
   isCardElement as _isCardElement,
+  Option as _Option,
   Section as _Section,
+  Select as _Select,
 } from "./cards";
 import {
   isJSX as _isJSX,
@@ -27,6 +29,8 @@ import {
   type DividerProps,
   type FieldProps,
   type ImageProps,
+  type OptionProps,
+  type SelectProps,
   type TextProps,
 } from "./jsx-runtime";
 export const Actions = _Actions;
@@ -40,7 +44,9 @@ export const fromReactElement = _fromReactElement;
 export const Image = _Image;
 export const isCardElement = _isCardElement;
 export const isJSX = _isJSX;
+export const Option = _Option;
 export const Section = _Section;
+export const Select = _Select;
 export const toCardElement = _toCardElement;
 // Card types
 export type {
@@ -55,7 +61,11 @@ export type {
   FieldElement,
   FieldsElement,
   ImageElement,
+  OptionElement,
+  OptionOptions,
   SectionElement,
+  SelectElement,
+  SelectOptions,
   TextElement,
   TextStyle,
 } from "./cards";
@@ -69,6 +79,8 @@ export type {
   DividerProps,
   FieldProps,
   ImageProps,
+  OptionProps,
+  SelectProps,
   TextProps,
 };
 // Emoji utilities

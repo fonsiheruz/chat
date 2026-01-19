@@ -7,7 +7,9 @@ import {
   Field,
   Fields,
   Image,
+  Option,
   Section,
+  Select,
 } from "chat";
 import { ButtonStyle } from "discord-api-types/v10";
 import { describe, expect, it } from "vitest";
@@ -222,6 +224,93 @@ describe("cardToDiscordPayload", () => {
     expect(embeds[0].description).toContain("Subtitle");
     expect(embeds[0].description).toContain("Content");
   });
+
+  it("converts select dropdown", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Select priority...",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Medium", value: "medium" }),
+            Option({ label: "Low", value: "low", description: "Non-urgent" }),
+          ],
+        }),
+      ],
+    });
+    const { components } = cardToDiscordPayload(card);
+
+    expect(components).toHaveLength(1);
+    expect(components[0].type).toBe(1); // Action Row
+
+    const selectMenu = components[0].components[0] as {
+      type: number;
+      custom_id: string;
+      placeholder?: string;
+      options: Array<{
+        label: string;
+        value: string;
+        description?: string;
+      }>;
+    };
+    expect(selectMenu.type).toBe(3); // String Select Menu
+    expect(selectMenu.custom_id).toBe("priority");
+    expect(selectMenu.placeholder).toBe("Select priority...");
+    expect(selectMenu.options).toHaveLength(3);
+    expect(selectMenu.options[0]).toEqual({
+      label: "High",
+      value: "high",
+    });
+    expect(selectMenu.options[1]).toEqual({
+      label: "Medium",
+      value: "medium",
+    });
+    expect(selectMenu.options[2]).toEqual({
+      label: "Low",
+      value: "low",
+      description: "Non-urgent",
+    });
+  });
+
+  it("converts select without placeholder", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "status",
+          options: [
+            Option({ label: "Active", value: "active" }),
+            Option({ label: "Inactive", value: "inactive" }),
+          ],
+        }),
+      ],
+    });
+    const { components } = cardToDiscordPayload(card);
+
+    const selectMenu = components[0].components[0] as {
+      placeholder?: string;
+    };
+    expect(selectMenu.placeholder).toBeUndefined();
+  });
+
+  it("converts card with select and buttons in separate action rows", () => {
+    const card = Card({
+      title: "Task Form",
+      children: [
+        Select({
+          id: "priority",
+          options: [Option({ label: "High", value: "high" })],
+        }),
+        Actions([Button({ id: "submit", label: "Submit", style: "primary" })]),
+      ],
+    });
+    const { components } = cardToDiscordPayload(card);
+
+    // Select and Actions should be in separate action rows
+    expect(components).toHaveLength(2);
+    expect(components[0].components[0]).toHaveProperty("type", 3); // Select menu
+    expect(components[1].components[0]).toHaveProperty("type", 2); // Button
+  });
 });
 
 describe("cardToFallbackText", () => {
@@ -302,5 +391,40 @@ describe("cardToFallbackText", () => {
     expect(text).toContain("**A**: 1");
     expect(text).toContain("**B**: 2");
     expect(text).toContain("**C**: 3");
+  });
+
+  it("generates fallback text for select", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Choose priority",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+
+    const text = cardToFallbackText(card);
+    expect(text).toContain("Choose priority");
+    expect(text).toContain("High");
+    expect(text).toContain("Low");
+  });
+
+  it("generates fallback text for select without placeholder", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "status",
+          options: [Option({ label: "Active", value: "active" })],
+        }),
+      ],
+    });
+
+    const text = cardToFallbackText(card);
+    expect(text).toContain("Select");
+    expect(text).toContain("Active");
   });
 });

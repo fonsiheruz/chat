@@ -18,6 +18,7 @@ import type {
   FieldsElement,
   ImageElement,
   SectionElement,
+  SelectElement,
   TextElement,
 } from "chat";
 
@@ -59,6 +60,24 @@ export interface GoogleChatWidget {
   };
   buttonList?: { buttons: GoogleChatButton[] };
   divider?: Record<string, never>;
+  selectionInput?: GoogleChatSelectionInput;
+}
+
+export interface GoogleChatSelectionInput {
+  name: string;
+  label?: string;
+  type: "DROPDOWN" | "RADIO_BUTTON" | "CHECK_BOX" | "SWITCH";
+  items: GoogleChatSelectionItem[];
+  onChangeAction?: {
+    function: string;
+    parameters: Array<{ key: string; value: string }>;
+  };
+}
+
+export interface GoogleChatSelectionItem {
+  text: string;
+  value: string;
+  selected?: boolean;
 }
 
 export interface GoogleChatButton {
@@ -183,6 +202,8 @@ function convertChildToWidgets(
       return convertSectionToWidgets(child, endpointUrl);
     case "fields":
       return convertFieldsToWidgets(child);
+    case "select":
+      return [convertSelectToWidget(child, endpointUrl)];
     default:
       return [];
   }
@@ -228,6 +249,35 @@ function convertActionsToWidget(
   return {
     buttonList: { buttons },
   };
+}
+
+function convertSelectToWidget(
+  select: SelectElement,
+  endpointUrl?: string,
+): GoogleChatWidget {
+  const parameters: Array<{ key: string; value: string }> = [
+    { key: "actionId", value: select.id },
+  ];
+
+  const selectionInput: GoogleChatSelectionInput = {
+    name: select.id,
+    label: select.placeholder ? convertEmoji(select.placeholder) : undefined,
+    type: "DROPDOWN",
+    items: select.options.map((option) => ({
+      text: convertEmoji(option.label),
+      value: option.value,
+    })),
+  };
+
+  // Add onChangeAction for interactive selects
+  if (endpointUrl) {
+    selectionInput.onChangeAction = {
+      function: endpointUrl,
+      parameters,
+    };
+  }
+
+  return { selectionInput };
 }
 
 function convertButtonToGoogleButton(

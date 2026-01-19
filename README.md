@@ -242,6 +242,84 @@ await thread.post(
 
 **Note:** Use `CardText` (not `Text`) when using JSX to avoid conflicts with React's built-in types.
 
+## Select Dropdowns
+
+Add interactive dropdown menus to your cards. Selects work across all platforms, automatically converting to platform-specific formats.
+
+### JSX Syntax
+
+```tsx
+import { Card, CardText, Select, Option, Button, Actions } from "chat";
+
+await thread.post(
+  <Card title="Create Task">
+    <CardText>Configure your new task:</CardText>
+    <Select id="priority" placeholder="Select priority...">
+      <Option value="high">High Priority</Option>
+      <Option value="medium">Medium Priority</Option>
+      <Option value="low" description="For non-urgent items">Low Priority</Option>
+    </Select>
+    <Actions>
+      <Button id="submit" style="primary">Create Task</Button>
+    </Actions>
+  </Card>
+);
+```
+
+### Object Syntax
+
+```typescript
+import { Card, CardText, Select, Option, Button, Actions } from "chat";
+
+await thread.post(
+  Card({
+    title: "Create Task",
+    children: [
+      CardText("Configure your new task:"),
+      Select({
+        id: "priority",
+        placeholder: "Select priority...",
+        options: [
+          Option({ label: "High Priority", value: "high" }),
+          Option({ label: "Medium Priority", value: "medium" }),
+          Option({ label: "Low Priority", value: "low", description: "For non-urgent items" }),
+        ],
+      }),
+      Actions([Button({ id: "submit", label: "Create Task", style: "primary" })]),
+    ],
+  })
+);
+```
+
+### Handling Select Changes
+
+```typescript
+import { Chat, type ActionEvent } from "chat";
+
+// Handle when user selects an option (Slack, Discord, GChat)
+bot.onAction("priority", async (event: ActionEvent) => {
+  await event.thread.post(`Priority set to: ${event.value}`);
+});
+
+// Handle a submit button that captures all form inputs (all platforms)
+bot.onAction("submit", async (event: ActionEvent) => {
+  // event.inputs contains all form values (e.g., { priority: "high" })
+  const priority = event.inputs?.priority ?? "none";
+  await event.thread.post(`Task created with priority: ${priority}`);
+});
+```
+
+### Platform Behavior
+
+| Platform | Select Rendering | Interaction |
+|----------|------------------|-------------|
+| Slack | `static_select` in Block Kit | Immediate callback, value in `event.value` |
+| Discord | String Select Menu | Immediate callback, value in `event.value` |
+| Google Chat | `SelectionInput` (DROPDOWN) | Immediate callback, value in `event.value` |
+| Teams | `Input.ChoiceSet` (compact) | Submit button required, values in `event.inputs` |
+
+**Note:** Teams requires a submit button to capture form values. Use `event.inputs` to access all Input.ChoiceSet values when the button is clicked.
+
 ## Action Callbacks
 
 Handle button clicks from cards:

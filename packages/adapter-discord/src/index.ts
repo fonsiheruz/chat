@@ -316,11 +316,16 @@ export class DiscordAdapter implements Adapter<DiscordThreadId, unknown> {
       channelId,
     });
 
+    // For select menus, the selected value(s) come from interaction.data.values
+    // For buttons, fall back to the custom_id as the value
+    const values = interaction.data?.values;
+    const value = values && values.length > 0 ? values[0] : customId;
+
     const actionEvent: Omit<ActionEvent, "thread"> & {
       adapter: DiscordAdapter;
     } = {
       actionId: customId,
-      value: customId, // Discord custom_id often contains the value
+      value,
       user: {
         userId: user.id,
         userName: user.username,

@@ -1,7 +1,17 @@
 /**
  * Tests for shared card utility functions.
  */
-import { Actions, Button, Card, CardText, Divider, Field, Fields } from "chat";
+import {
+  Actions,
+  Button,
+  Card,
+  CardText,
+  Divider,
+  Field,
+  Fields,
+  Option,
+  Select,
+} from "chat";
 import { describe, expect, it } from "vitest";
 import {
   BUTTON_STYLE_MAPPINGS,
@@ -229,5 +239,67 @@ describe("cardToFallbackText", () => {
       children: [CardText("Just text")],
     });
     expect(cardToFallbackText(card)).toBe("Just text");
+  });
+
+  it("formats select as bracketed dropdown with options", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Choose priority",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+    const result = cardToFallbackText(card);
+    expect(result).toContain("Choose priority");
+    expect(result).toContain("High");
+    expect(result).toContain("Low");
+  });
+
+  it("formats select without placeholder using default label", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "status",
+          options: [Option({ label: "Active", value: "active" })],
+        }),
+      ],
+    });
+    const result = cardToFallbackText(card);
+    expect(result).toContain("Select");
+    expect(result).toContain("Active");
+  });
+
+  it("handles complex card with select and buttons", () => {
+    const card = Card({
+      title: "Task Form",
+      children: [
+        CardText("Configure your task:"),
+        Select({
+          id: "priority",
+          placeholder: "Priority",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Medium", value: "medium" }),
+          ],
+        }),
+        Actions([
+          Button({ id: "submit", label: "Create", style: "primary" }),
+          Button({ id: "cancel", label: "Cancel" }),
+        ]),
+      ],
+    });
+
+    const result = cardToFallbackText(card);
+    expect(result).toContain("*Task Form*");
+    expect(result).toContain("Configure your task:");
+    expect(result).toContain("Priority");
+    expect(result).toContain("High");
+    expect(result).toContain("Medium");
+    expect(result).toContain("[Create] [Cancel]");
   });
 });

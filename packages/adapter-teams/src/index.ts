@@ -462,10 +462,14 @@ export class TeamsAdapter implements Adapter<TeamsThreadId, unknown> {
       serviceUrl: activity.serviceUrl || "",
     });
 
+    // Extract all form inputs from activity.value (excluding actionId and value)
+    const inputs = this.extractFormInputs(activity.value);
+
     const actionEvent: Omit<ActionEvent, "thread"> & { adapter: TeamsAdapter } =
       {
         actionId: actionValue.actionId,
         value: actionValue.value,
+        inputs,
         user: {
           userId: activity.from?.id || "unknown",
           userName: activity.from?.name || "unknown",
@@ -482,6 +486,7 @@ export class TeamsAdapter implements Adapter<TeamsThreadId, unknown> {
     this.logger.debug("Processing Teams message action (Action.Submit)", {
       actionId: actionValue.actionId,
       value: actionValue.value,
+      inputs,
       messageId: actionEvent.messageId,
       threadId,
     });
@@ -542,10 +547,14 @@ export class TeamsAdapter implements Adapter<TeamsThreadId, unknown> {
       serviceUrl: activity.serviceUrl || "",
     });
 
+    // Extract all form inputs from activity.value (excluding action data)
+    const inputs = this.extractFormInputs(activity.value);
+
     const actionEvent: Omit<ActionEvent, "thread"> & { adapter: TeamsAdapter } =
       {
         actionId: actionData.actionId,
         value: actionData.value,
+        inputs,
         user: {
           userId: activity.from?.id || "unknown",
           userName: activity.from?.name || "unknown",
@@ -562,6 +571,7 @@ export class TeamsAdapter implements Adapter<TeamsThreadId, unknown> {
     this.logger.debug("Processing Teams adaptive card action", {
       actionId: actionData.actionId,
       value: actionData.value,
+      inputs,
       messageId: actionEvent.messageId,
       threadId,
     });
@@ -1806,6 +1816,34 @@ export class TeamsAdapter implements Adapter<TeamsThreadId, unknown> {
       `Teams API error during ${operation}: ${String(error)}`,
       error instanceof Error ? error : undefined,
     );
+  }
+
+  /**
+   * Extract form input values from activity.value.
+   * Teams merges all Input.* values with the button's data object.
+   */
+  private extractFormInputs(
+    activityValue: unknown,
+  ): Record<string, string> | undefined {
+    if (!activityValue || typeof activityValue !== "object") {
+      return undefined;
+    }
+
+    const value = activityValue as Record<string, unknown>;
+    const inputs: Record<string, string> = {};
+
+    for (const [key, val] of Object.entries(value)) {
+      // Skip our action metadata fields
+      if (key === "actionId" || key === "value" || key === "action") {
+        continue;
+      }
+      // Only include string values (form inputs)
+      if (typeof val === "string") {
+        inputs[key] = val;
+      }
+    }
+
+    return Object.keys(inputs).length > 0 ? inputs : undefined;
   }
 }
 

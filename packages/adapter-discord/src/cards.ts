@@ -13,12 +13,18 @@ import type {
   CardElement,
   FieldsElement,
   SectionElement,
+  SelectElement,
   TextElement,
 } from "chat";
 import { convertEmojiPlaceholders } from "chat";
 import type { APIEmbed, APIEmbedField } from "discord-api-types/v10";
 import { ButtonStyle } from "discord-api-types/v10";
-import type { DiscordActionRow, DiscordButton } from "./types";
+import type {
+  DiscordActionRow,
+  DiscordButton,
+  DiscordSelectMenu,
+  DiscordSelectOption,
+} from "./types";
 
 /**
  * Convert emoji placeholders to Discord format.
@@ -114,6 +120,13 @@ function processChild(
     case "fields":
       convertFieldsElement(child, fields);
       break;
+    case "select":
+      // Select menus must be in their own action row
+      components.push({
+        type: 1,
+        components: [convertSelectElement(child)],
+      });
+      break;
   }
 }
 
@@ -146,6 +159,34 @@ function convertActionsElement(element: ActionsElement): DiscordActionRow {
     type: 1, // Action Row
     components: buttons,
   };
+}
+
+/**
+ * Convert a select element to a Discord string select menu.
+ */
+function convertSelectElement(select: SelectElement): DiscordSelectMenu {
+  const options: DiscordSelectOption[] = select.options.map((option) => {
+    const discordOption: DiscordSelectOption = {
+      label: option.label,
+      value: option.value,
+    };
+    if (option.description) {
+      discordOption.description = option.description;
+    }
+    return discordOption;
+  });
+
+  const selectMenu: DiscordSelectMenu = {
+    type: 3, // String select menu
+    custom_id: select.id,
+    options,
+  };
+
+  if (select.placeholder) {
+    selectMenu.placeholder = select.placeholder;
+  }
+
+  return selectMenu;
 }
 
 /**
@@ -244,6 +285,12 @@ function childToFallbackText(child: CardChild): string | null {
         .join("\n");
     case "actions":
       return `[${child.children.map((b) => convertEmoji(b.label)).join("] [")}]`;
+    case "select": {
+      const optionLabels = child.options
+        .map((o) => convertEmoji(o.label))
+        .join(", ");
+      return `[${convertEmoji(child.placeholder || "Select")}: ${optionLabels}]`;
+    }
     case "section":
       return child.children
         .map((c) => childToFallbackText(c))

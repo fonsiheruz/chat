@@ -7,7 +7,9 @@ import {
   Field,
   Fields,
   Image,
+  Option,
   Section,
+  Select,
 } from "chat";
 import { describe, expect, it } from "vitest";
 import { cardToAdaptiveCard, cardToFallbackText } from "./cards";
@@ -236,6 +238,79 @@ describe("cardToAdaptiveCard", () => {
     expect(adaptive.actions).toHaveLength(1);
     expect(adaptive.actions?.[0].title).toBe("Track Package");
   });
+
+  it("converts select dropdown to Input.ChoiceSet", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Select priority...",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Medium", value: "medium" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+    const adaptive = cardToAdaptiveCard(card);
+
+    expect(adaptive.body).toHaveLength(1);
+    expect(adaptive.body[0]).toEqual({
+      type: "Input.ChoiceSet",
+      id: "priority",
+      placeholder: "Select priority...",
+      choices: [
+        { title: "High", value: "high" },
+        { title: "Medium", value: "medium" },
+        { title: "Low", value: "low" },
+      ],
+      style: "compact",
+    });
+  });
+
+  it("converts select without placeholder", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "status",
+          options: [
+            Option({ label: "Active", value: "active" }),
+            Option({ label: "Inactive", value: "inactive" }),
+          ],
+        }),
+      ],
+    });
+    const adaptive = cardToAdaptiveCard(card);
+
+    expect(adaptive.body[0].placeholder).toBeUndefined();
+    expect(adaptive.body[0].id).toBe("status");
+  });
+
+  it("converts card with select and buttons", () => {
+    const card = Card({
+      title: "Task Form",
+      children: [
+        CardText("Choose a priority:"),
+        Select({
+          id: "priority",
+          options: [Option({ label: "High", value: "high" })],
+        }),
+        Actions([Button({ id: "submit", label: "Submit", style: "primary" })]),
+      ],
+    });
+    const adaptive = cardToAdaptiveCard(card);
+
+    // Title, text, select in body
+    expect(adaptive.body).toHaveLength(3);
+    expect(adaptive.body[0].type).toBe("TextBlock"); // title
+    expect(adaptive.body[1].type).toBe("TextBlock"); // text
+    expect(adaptive.body[2].type).toBe("Input.ChoiceSet"); // select
+
+    // Actions at card level
+    expect(adaptive.actions).toHaveLength(1);
+    expect(adaptive.actions?.[0].title).toBe("Submit");
+  });
 });
 
 describe("cardToFallbackText", () => {
@@ -270,5 +345,25 @@ describe("cardToFallbackText", () => {
     const card = Card({ title: "Simple Card" });
     const text = cardToFallbackText(card);
     expect(text).toBe("**Simple Card**");
+  });
+
+  it("generates fallback text for select", () => {
+    const card = Card({
+      children: [
+        Select({
+          id: "priority",
+          placeholder: "Choose priority",
+          options: [
+            Option({ label: "High", value: "high" }),
+            Option({ label: "Low", value: "low" }),
+          ],
+        }),
+      ],
+    });
+
+    const text = cardToFallbackText(card);
+    expect(text).toContain("Choose priority");
+    expect(text).toContain("High");
+    expect(text).toContain("Low");
   });
 });

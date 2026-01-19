@@ -42,7 +42,11 @@ import {
   type FieldElement,
   Fields,
   Image,
+  Option,
+  type OptionElement,
   Section,
+  Select,
+  type SelectElement,
   Text,
   type TextStyle,
 } from "./cards";
@@ -89,6 +93,21 @@ export interface FieldProps {
   value: string;
 }
 
+/** Props for Select component in JSX */
+export interface SelectProps {
+  id: string;
+  placeholder?: string;
+  children?: unknown;
+}
+
+/** Props for Option component in JSX */
+export interface OptionProps {
+  label?: string;
+  value: string;
+  description?: string;
+  children?: string | number;
+}
+
 /** Props for container components (Section, Actions, Fields) */
 export interface ContainerProps {
   children?: unknown;
@@ -104,6 +123,8 @@ export type CardJSXProps =
   | ButtonProps
   | ImageProps
   | FieldProps
+  | SelectProps
+  | OptionProps
   | ContainerProps
   | DividerProps;
 
@@ -117,7 +138,9 @@ type CardComponentFunction =
   | typeof Divider
   | typeof Section
   | typeof Actions
-  | typeof Fields;
+  | typeof Fields
+  | typeof Select
+  | typeof Option;
 
 /**
  * Represents a JSX element from the chat JSX runtime.
@@ -145,7 +168,12 @@ function isJSXElement(value: unknown): value is JSXElement {
 }
 
 /** Non-null card element for children arrays */
-type CardChildOrNested = CardChild | ButtonElement | FieldElement;
+type CardChildOrNested =
+  | CardChild
+  | ButtonElement
+  | FieldElement
+  | SelectElement
+  | OptionElement;
 
 /**
  * Process children, converting JSX elements to card elements.
@@ -188,6 +216,8 @@ type AnyCardElement =
   | CardChild
   | ButtonElement
   | FieldElement
+  | SelectElement
+  | OptionElement
   | null;
 
 /**
@@ -220,6 +250,22 @@ function isFieldProps(props: CardJSXProps): props is FieldProps {
     "value" in props &&
     typeof props.label === "string" &&
     typeof props.value === "string"
+  );
+}
+
+/**
+ * Type guard to check if props match SelectProps
+ */
+function isSelectProps(props: CardJSXProps): props is SelectProps {
+  return "id" in props && typeof props.id === "string" && !("label" in props);
+}
+
+/**
+ * Type guard to check if props match OptionProps
+ */
+function isOptionProps(props: CardJSXProps): props is OptionProps {
+  return (
+    "value" in props && typeof props.value === "string" && !("id" in props)
   );
 }
 
@@ -306,6 +352,36 @@ function resolveJSXElement(element: JSXElement): AnyCardElement {
     return Field({
       label: props.label,
       value: props.value,
+    });
+  }
+
+  if (type === Select) {
+    // Select({ id, placeholder, options })
+    // JSX children become the options
+    if (!isSelectProps(props)) {
+      throw new Error("Select requires an 'id' prop");
+    }
+    return Select({
+      id: props.id,
+      placeholder: props.placeholder,
+      options: processedChildren as OptionElement[],
+    });
+  }
+
+  if (type === Option) {
+    // Option({ label, value, description })
+    // JSX children become the label
+    if (!isOptionProps(props)) {
+      throw new Error("Option requires a 'value' prop");
+    }
+    const label =
+      processedChildren.length > 0
+        ? String(processedChildren[0])
+        : (props.label ?? "");
+    return Option({
+      label,
+      value: props.value,
+      description: props.description,
     });
   }
 

@@ -197,6 +197,13 @@ export interface GoogleChatEvent {
     invokedFunction?: string;
     /** Parameters passed to the function */
     parameters?: Record<string, string>;
+    /** Form input values (for selection inputs) */
+    formInputs?: Record<
+      string,
+      {
+        stringInputs?: { value: string[] };
+      }
+    >;
   };
   chat?: {
     user?: GoogleChatUser;
@@ -986,8 +993,15 @@ export class GoogleChatAdapter implements Adapter<GoogleChatThreadId, unknown> {
       return;
     }
 
-    // Get value from parameters
-    const value = commonEvent?.parameters?.value;
+    // Get value - for buttons it's in parameters.value,
+    // for selection inputs it's in formInputs[actionId].stringInputs.value
+    let value = commonEvent?.parameters?.value;
+    if (!value && commonEvent?.formInputs && actionId) {
+      const formInput = commonEvent.formInputs[actionId];
+      if (formInput?.stringInputs?.value?.length) {
+        value = formInput.stringInputs.value[0];
+      }
+    }
 
     // Get space and message info from buttonClickedPayload
     const space = buttonPayload?.space;
