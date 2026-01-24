@@ -160,7 +160,7 @@ function convertImageToBlock(element: ImageElement): SlackBlock {
   };
 }
 
-export function convertDividerToBlock(_element: DividerElement): SlackBlock {
+function convertDividerToBlock(_element: DividerElement): SlackBlock {
   return { type: "divider" };
 }
 
