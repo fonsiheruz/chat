@@ -49,7 +49,7 @@ importers:
         version: link:../../packages/adapter-teams
       ai:
         specifier: ^6.0.5
-        version: 6.0.6(zod@4.3.3)
+        version: 6.0.6(zod@4.3.6)
       chat:
         specifier: workspace:*
         version: link:../../packages/chat
@@ -108,9 +108,12 @@ importers:
       '@chat-adapter/teams':
         specifier: workspace:*
         version: link:../../packages/adapter-teams
+      '@savoir/sdk':
+        specifier: 0.1.0-alpha.1
+        version: 0.1.0-alpha.1(ai@6.0.78(zod@4.3.6))
       ai:
         specifier: ^6.0.71
-        version: 6.0.78(zod@4.3.3)
+        version: 6.0.78(zod@4.3.6)
       chat:
         specifier: workspace:*
         version: link:../../packages/chat
@@ -1868,6 +1871,15 @@ packages:
   '@sapphire/snowflake@3.5.3':
     resolution: {integrity: sha512-jjmJywLAFoWeBi1W7994zZyiNWPIiqRRNAmSERxyg93xRGzNYvGjlZ0gR6x0F4gPRi2+0O6S71kOZYyr3cxaIQ==}
     engines: {node: '>=v14.0.0', npm: '>=7.0.0'}
+
+  '@savoir/sdk@0.1.0-alpha.1':
+    resolution: {integrity: sha512-114Lkkf6b4Ij38IrlClFAIlJWYBRIrP8HpwKgPFqzY3Fh9eal2hRliLl0CGHZ4wt4vcEYIkMkFkPKoHguI3YmQ==}
+    engines: {node: '>=20.0.0'}
+    peerDependencies:
+      ai: '>=6.0.68'
+    peerDependenciesMeta:
+      ai:
+        optional: true
 
   '@slack/logger@4.0.0':
     resolution: {integrity: sha512-Wz7QYfPAlG/DR+DfABddUZeNgoeY7d1J39OCR2jR+v7VBsB8ezulDK5szTnDDPDwLH5IWhLvXIHlCFZV7MSKgA==}
@@ -3891,38 +3903,41 @@ packages:
   zod@4.3.3:
     resolution: {integrity: sha512-bQ7Rxwfn04DCrTjjRfD9SavY2vWdmf3REjs/mkc1LdwI1KkcHClBRJmnvmA/6epGeqlHePtIRF1J4SrMMlW7IA==}
 
+  zod@4.3.6:
+    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+
   zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}
 
 snapshots:
 
-  '@ai-sdk/gateway@3.0.39(zod@4.3.3)':
+  '@ai-sdk/gateway@3.0.39(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.14(zod@4.3.3)
+      '@ai-sdk/provider-utils': 4.0.14(zod@4.3.6)
       '@vercel/oidc': 3.1.0
-      zod: 4.3.3
+      zod: 4.3.6
 
-  '@ai-sdk/gateway@3.0.5(zod@4.3.3)':
+  '@ai-sdk/gateway@3.0.5(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.1
-      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.3)
+      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.6)
       '@vercel/oidc': 3.0.5
-      zod: 4.3.3
+      zod: 4.3.6
 
-  '@ai-sdk/provider-utils@4.0.14(zod@4.3.3)':
+  '@ai-sdk/provider-utils@4.0.14(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.8
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
-      zod: 4.3.3
+      zod: 4.3.6
 
-  '@ai-sdk/provider-utils@4.0.2(zod@4.3.3)':
+  '@ai-sdk/provider-utils@4.0.2(zod@4.3.6)':
     dependencies:
       '@ai-sdk/provider': 3.0.1
       '@standard-schema/spec': 1.1.0
       eventsource-parser: 3.0.6
-      zod: 4.3.3
+      zod: 4.3.6
 
   '@ai-sdk/provider@3.0.1':
     dependencies:
@@ -5111,6 +5126,12 @@ snapshots:
 
   '@sapphire/snowflake@3.5.3': {}
 
+  '@savoir/sdk@0.1.0-alpha.1(ai@6.0.78(zod@4.3.6))':
+    dependencies:
+      zod: 4.3.6
+    optionalDependencies:
+      ai: 6.0.78(zod@4.3.6)
+
   '@slack/logger@4.0.0':
     dependencies:
       '@types/node': 22.19.10
@@ -5294,21 +5315,21 @@ snapshots:
 
   agent-base@7.1.4: {}
 
-  ai@6.0.6(zod@4.3.3):
+  ai@6.0.6(zod@4.3.6):
     dependencies:
-      '@ai-sdk/gateway': 3.0.5(zod@4.3.3)
+      '@ai-sdk/gateway': 3.0.5(zod@4.3.6)
       '@ai-sdk/provider': 3.0.1
-      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.3)
+      '@ai-sdk/provider-utils': 4.0.2(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
-      zod: 4.3.3
+      zod: 4.3.6
 
-  ai@6.0.78(zod@4.3.3):
+  ai@6.0.78(zod@4.3.6):
     dependencies:
-      '@ai-sdk/gateway': 3.0.39(zod@4.3.3)
+      '@ai-sdk/gateway': 3.0.39(zod@4.3.6)
       '@ai-sdk/provider': 3.0.8
-      '@ai-sdk/provider-utils': 4.0.14(zod@4.3.3)
+      '@ai-sdk/provider-utils': 4.0.14(zod@4.3.6)
       '@opentelemetry/api': 1.9.0
-      zod: 4.3.3
+      zod: 4.3.6
 
   ansi-colors@4.1.3: {}
 
@@ -7342,5 +7363,7 @@ snapshots:
   zod@3.25.76: {}
 
   zod@4.3.3: {}
+
+  zod@4.3.6: {}
 
   zwitch@2.0.4: {}

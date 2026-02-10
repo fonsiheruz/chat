@@ -21,6 +21,7 @@
     "@chat-adapter/slack": "workspace:*",
     "@chat-adapter/state-redis": "workspace:*",
     "@chat-adapter/teams": "workspace:*",
+    "@savoir/sdk": "0.1.0-alpha.1",
     "ai": "^6.0.71",
     "chat": "workspace:*",
     "react": "^19.2.4",

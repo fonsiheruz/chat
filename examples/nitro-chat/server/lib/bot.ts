@@ -1,4 +1,5 @@
 import { createRedisState } from "@chat-adapter/state-redis";
+import { createSavoir } from "@savoir/sdk";
 import { ToolLoopAgent } from "ai";
 import {
   Actions,
@@ -38,10 +39,44 @@ export const bot = new Chat<typeof adapters, ThreadState>({
   logger: "debug",
 });
 
+const basePrompt = `You are a documentation assistant with bash access to a sandbox containing docs (markdown, JSON, YAML).
+
+## Speed is Important
+Minimize the number of commands. Chain commands with \`&&\` when possible.
+
+## Sandbox Structure
+Sources: \`docs/nuxt/\`, \`docs/nuxt-content/\`, \`docs/nuxt-ui/\`, \`docs/nuxt-hub/\`, \`docs/nuxt-image/\`, \`docs/nuxt-studio/\`
+
+## Efficient Pattern
+Do this in ONE command:
+\`\`\`bash
+grep -rl "term" docs/ --include="*.md" | head -5 && cat $(grep -rl "term" docs/ --include="*.md" | head -1)
+\`\`\`
+
+Or explore and search together:
+\`\`\`bash
+ls docs/ && grep -rl "keyword" docs/ --include="*.md" | head -10
+\`\`\`
+
+## Tips
+- Chain commands with \`&&\` to reduce round-trips
+- Use \`head -80\` for large files
+- 2-3 well-targeted commands is better than 10 exploratory ones
+
+## Response
+- Be concise and helpful
+- Include code examples
+- Use markdown`;
+
+const savoir = createSavoir({
+  apiUrl: process.env.SAVOIR_API_URL || "",
+  apiKey: process.env.SAVOIR_API_KEY, // Optional if API doesn't require auth
+});
+
 const agent = new ToolLoopAgent({
-  model: "anthropic/claude-3.5-haiku",
-  instructions:
-    "You are a helpful assistant in a chat thread. Answer the user's queries in a concise manner.",
+  model: "google/gemini-3-flash",
+  instructions: basePrompt,
+  tools: savoir.tools,
 });
 
 bot.onNewMention(async (thread, message) => {
@@ -54,7 +89,7 @@ bot.onNewMention(async (thread, message) => {
         title: `${emoji.sparkles} AI Mode Enabled`,
         children: [
           CardText(
-            "I'm now in AI mode! I'll use Claude to respond to your messages in this thread.",
+            "I'm now in AI mode! I'll use Gemini 3 Flash to respond to your messages in this thread.",
           ),
           CardText('Say "disable AI" to turn off AI mode.'),
           Divider(),
