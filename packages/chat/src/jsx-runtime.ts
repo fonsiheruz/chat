@@ -370,7 +370,7 @@ function resolveJSXElement(element: JSXElement): AnyCardElement {
     const textProps = isTextProps(props) ? props : { style: undefined };
     const content =
       processedChildren.length > 0
-        ? String(processedChildren[0])
+        ? processedChildren.map(String).join("")
         : String(textProps.children ?? "");
     return Text(content, { style: textProps.style });
   }
@@ -398,7 +398,7 @@ function resolveJSXElement(element: JSXElement): AnyCardElement {
     }
     const label =
       processedChildren.length > 0
-        ? String(processedChildren[0])
+        ? processedChildren.map(String).join("")
         : (props.label ?? "");
     return Button({
       id: props.id,
@@ -416,7 +416,7 @@ function resolveJSXElement(element: JSXElement): AnyCardElement {
     }
     const label =
       processedChildren.length > 0
-        ? String(processedChildren[0])
+        ? processedChildren.map(String).join("")
         : (props.label ?? "");
     return LinkButton({
       url: props.url,

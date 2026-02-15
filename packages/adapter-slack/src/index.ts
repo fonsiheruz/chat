@@ -150,6 +150,7 @@ interface SlackBlockActionsPayload {
     message_ts: string;
     channel_id: string;
     is_ephemeral?: boolean;
+    thread_ts?: string;
   };
   channel: {
     id: string;
@@ -714,7 +715,8 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
 
     const channel = payload.channel?.id || payload.container?.channel_id;
     const messageTs = payload.message?.ts || payload.container?.message_ts;
-    const threadTs = payload.message?.thread_ts || messageTs;
+    const threadTs =
+      payload.message?.thread_ts || payload.container?.thread_ts || messageTs;
 
     if (!channel || !messageTs) {
       this.logger.warn("Missing channel or message_ts in block_actions", {
@@ -728,6 +730,13 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
       channel,
       threadTs: threadTs || messageTs,
     });
+
+    const isEphemeral = payload.container?.is_ephemeral === true;
+    const responseUrl = payload.response_url;
+    const messageId =
+      isEphemeral && responseUrl
+        ? this.encodeEphemeralMessageId(messageTs, responseUrl, payload.user.id)
+        : messageTs;
 
     // Process each action (usually just one, but can be multiple)
     for (const action of payload.actions) {
@@ -743,7 +752,7 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
           isBot: false,
           isMe: false,
         },
-        messageId: messageTs,
+        messageId,
         threadId,
         adapter: this,
         raw: payload,
@@ -1452,6 +1461,24 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
     messageId: string,
     message: AdapterPostableMessage,
   ): Promise<RawMessage<unknown>> {
+    const ephemeral = this.decodeEphemeralMessageId(messageId);
+    if (ephemeral) {
+      await this.deleteViaResponseUrl(ephemeral.responseUrl);
+      if (ephemeral.userId) {
+        const result = await this.postEphemeral(threadId, ephemeral.userId, message);
+        return {
+          id: result.id,
+          threadId,
+          raw: { ephemeral: true, ...(result.raw as Record<string, unknown>) },
+        };
+      }
+      return {
+        id: ephemeral.messageTs,
+        threadId,
+        raw: { ephemeral: true, deleted: true },
+      };
+    }
+
     const { channel } = this.decodeThreadId(threadId);
 
     try {
@@ -1526,6 +1553,11 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
   }
 
   async deleteMessage(threadId: string, messageId: string): Promise<void> {
+    const ephemeral = this.decodeEphemeralMessageId(messageId);
+    if (ephemeral) {
+      await this.deleteViaResponseUrl(ephemeral.responseUrl);
+      return;
+    }
     const { channel } = this.decodeThreadId(threadId);
 
     try {
@@ -2041,6 +2073,75 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
     }
 
     throw error;
+  }
+
+  /**
+   * Encode response_url and userId into messageId for ephemeral messages.
+   * This allows edit/delete operations to work via response_url.
+   */
+  private encodeEphemeralMessageId(
+    messageTs: string,
+    responseUrl: string,
+    userId: string,
+  ): string {
+    const data = JSON.stringify({ responseUrl, userId });
+    return `ephemeral:${messageTs}:${btoa(data)}`;
+  }
+
+  /**
+   * Decode ephemeral messageId to extract messageTs, responseUrl, and userId.
+   * Returns null if the messageId is not an ephemeral encoding.
+   */
+  private decodeEphemeralMessageId(
+    messageId: string,
+  ): { messageTs: string; responseUrl: string; userId: string } | null {
+    if (!messageId.startsWith("ephemeral:")) return null;
+    const parts = messageId.split(":");
+    if (parts.length < 3) return null;
+    const messageTs = parts[1];
+    const encodedData = parts.slice(2).join(":");
+    try {
+      const decoded = atob(encodedData);
+      try {
+        const data = JSON.parse(decoded);
+        if (data.responseUrl && data.userId) {
+          return { messageTs, responseUrl: data.responseUrl, userId: data.userId };
+        }
+      } catch {
+        return { messageTs, responseUrl: decoded, userId: "" };
+      }
+      return null;
+    } catch {
+      this.logger.warn("Failed to decode ephemeral messageId", { messageId });
+      return null;
+    }
+  }
+
+  /**
+   * Delete an ephemeral message via Slack's response_url mechanism.
+   * Note: replace_original doesn't work for threaded ephemeral messages
+   * (causes duplicates in main channel), so we only support delete.
+   */
+  private async deleteViaResponseUrl(responseUrl: string): Promise<void> {
+    this.logger.debug("Slack response_url delete request");
+
+    const response = await fetch(responseUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ delete_original: true }),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      this.logger.error("Slack response_url failed", {
+        status: response.status,
+        body: text,
+      });
+      throw new ChatError(
+        `Failed to delete via response_url: ${text}`,
+        response.status.toString(),
+      );
+    }
   }
 }
 
