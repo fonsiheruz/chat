@@ -274,6 +274,37 @@ describe("TelegramAdapter", () => {
     await expect(adapter.startPolling()).rejects.toBeInstanceOf(ValidationError);
   });
 
+  it("can reset webhook explicitly", async () => {
+    mockFetch
+      .mockResolvedValueOnce(
+        telegramOk({
+          id: 999,
+          is_bot: true,
+          first_name: "Bot",
+          username: "mybot",
+        })
+      )
+      .mockResolvedValueOnce(telegramOk(true));
+
+    const adapter = createTelegramAdapter({
+      botToken: "token",
+      mode: "webhook",
+      logger: mockLogger,
+      userName: "mybot",
+    });
+
+    await adapter.initialize(createMockChat());
+    await adapter.resetWebhook(true);
+
+    expect(String(mockFetch.mock.calls[1]?.[0])).toContain("/deleteWebhook");
+    const body = JSON.parse(
+      String((mockFetch.mock.calls[1]?.[1] as RequestInit).body)
+    ) as {
+      drop_pending_updates?: boolean;
+    };
+    expect(body.drop_pending_updates).toBe(true);
+  });
+
   it("starts polling, advances offset, and stops cleanly", async () => {
     mockFetch
       .mockResolvedValueOnce(

@@ -244,9 +244,7 @@ export class TelegramAdapter
 
     try {
       if (resolvedConfig.deleteWebhook) {
-        await this.telegramFetch<boolean>("deleteWebhook", {
-          drop_pending_updates: resolvedConfig.dropPendingUpdates,
-        });
+        await this.resetWebhook(resolvedConfig.dropPendingUpdates);
       }
     } catch (error) {
       this.pollingActive = false;
@@ -279,6 +277,16 @@ export class TelegramAdapter
     }
 
     this.logger.info("Telegram polling stopped");
+  }
+
+  async resetWebhook(dropPendingUpdates = false): Promise<void> {
+    await this.telegramFetch<boolean>("deleteWebhook", {
+      drop_pending_updates: dropPendingUpdates,
+    });
+
+    this.logger.info("Telegram webhook reset", {
+      dropPendingUpdates,
+    });
   }
 
   private async resolveRuntimeMode(): Promise<TelegramRuntimeMode> {

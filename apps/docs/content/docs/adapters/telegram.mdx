@@ -57,6 +57,7 @@ curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/setWebhook" \
 
 Telegram also supports long polling via `getUpdates`.
 Polling starts automatically when `polling` is provided. Use `polling: true` for defaults:
+Use `adapter.resetWebhook(dropPendingUpdates?)` to clear webhook registration manually:
 
 ```typescript title="lib/bot.ts" lineNumbers
 import { Chat } from "chat";
@@ -78,6 +79,7 @@ const bot = new Chat({
 });
 
 // Optional manual lifecycle control:
+// await telegram.resetWebhook();
 // await telegram.startPolling();
 // await telegram.stopPolling();
 ```

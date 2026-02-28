@@ -33,6 +33,7 @@ Features include mentions, reactions, typing indicators, file uploads, and card 
 
 Use long polling (`getUpdates`) when you cannot expose a public webhook endpoint.
 Polling starts automatically when `polling` is provided. Pass `polling: true` to use defaults.
+Use `adapter.resetWebhook(dropPendingUpdates?)` to clear Telegram webhook registration manually.
 
 ```typescript
 import { createMemoryState } from "@chat-adapter/state-memory";
@@ -53,6 +54,7 @@ const bot = new Chat({
 });
 
 // Optional manual control
+await telegram.resetWebhook();
 await telegram.startPolling();
 await telegram.stopPolling();
 ```
