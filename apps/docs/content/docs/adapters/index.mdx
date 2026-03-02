@@ -1,6 +1,6 @@
 ---
 title: Overview
-description: Platform-specific adapters for Slack, Teams, Google Chat, Discord, GitHub, and Linear.
+description: Platform-specific adapters for Slack, Teams, Google Chat, Discord, Telegram, GitHub, and Linear.
 type: overview
 prerequisites:
   - /docs/getting-started
@@ -12,48 +12,48 @@ Adapters handle webhook verification, message parsing, and API calls for each pl
 
 ### Messaging
 
-| Feature | [Slack](/docs/adapters/slack) | [Teams](/docs/adapters/teams) | [Google Chat](/docs/adapters/gchat) | [Discord](/docs/adapters/discord) | [GitHub](/docs/adapters/github) | [Linear](/docs/adapters/linear) |
-|---------|-------|-------|-------------|---------|--------|--------|
-| Post message | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Edit message | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Delete message | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| File uploads | ✅ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| Streaming | ✅ Native | ⚠️ Post+Edit | ⚠️ Post+Edit | ⚠️ Post+Edit | ❌ | ❌ |
+| Feature | [Slack](/docs/adapters/slack) | [Teams](/docs/adapters/teams) | [Google Chat](/docs/adapters/gchat) | [Discord](/docs/adapters/discord) | [Telegram](/docs/adapters/telegram) | [GitHub](/docs/adapters/github) | [Linear](/docs/adapters/linear) |
+|---------|-------|-------|-------------|---------|---------|--------|--------|
+| Post message | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Edit message | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Delete message | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| File uploads | ✅ | ✅ | ❌ | ✅ | ⚠️ Single file | ❌ | ❌ |
+| Streaming | ✅ Native | ⚠️ Post+Edit | ⚠️ Post+Edit | ⚠️ Post+Edit | ⚠️ Post+Edit | ❌ | ❌ |
 
 ### Rich content
 
-| Feature | Slack | Teams | Google Chat | Discord | GitHub | Linear |
-|---------|-------|-------|-------------|---------|--------|--------|
-| Card format | Block Kit | Adaptive Cards | Google Chat Cards | Embeds | GFM Markdown | Markdown |
-| Buttons | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Link buttons | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Select menus | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ |
-| Fields | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Images in cards | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Modals | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Feature | Slack | Teams | Google Chat | Discord | Telegram | GitHub | Linear |
+|---------|-------|-------|-------------|---------|----------|--------|--------|
+| Card format | Block Kit | Adaptive Cards | Google Chat Cards | Embeds | Markdown + inline keyboard buttons | GFM Markdown | Markdown |
+| Buttons | ✅ | ✅ | ✅ | ✅ | ⚠️ Inline keyboard callbacks | ❌ | ❌ |
+| Link buttons | ✅ | ✅ | ✅ | ✅ | ⚠️ Inline keyboard URLs | ❌ | ❌ |
+| Select menus | ✅ | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Fields | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Images in cards | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Modals | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ### Conversations
 
-| Feature | Slack | Teams | Google Chat | Discord | GitHub | Linear |
-|---------|-------|-------|-------------|---------|--------|--------|
-| Mentions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Add reactions | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ |
-| Remove reactions | ✅ | ❌ | ✅ | ✅ | ⚠️ | ⚠️ |
-| Typing indicator | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ |
-| DMs | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| Ephemeral messages | ✅ Native | ❌ | ✅ Native | ❌ | ❌ | ❌ |
+| Feature | Slack | Teams | Google Chat | Discord | Telegram | GitHub | Linear |
+|---------|-------|-------|-------------|---------|----------|--------|--------|
+| Mentions | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Add reactions | ✅ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Remove reactions | ✅ | ❌ | ✅ | ✅ | ✅ | ⚠️ | ⚠️ |
+| Typing indicator | ❌ | ✅ | ❌ | ✅ | ✅ | ❌ | ❌ |
+| DMs | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Ephemeral messages | ✅ Native | ❌ | ✅ Native | ❌ | ❌ | ❌ | ❌ |
 
 ### Message history
 
-| Feature | Slack | Teams | Google Chat | Discord | GitHub | Linear |
-|---------|-------|-------|-------------|---------|--------|--------|
-| Fetch messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Fetch single message | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| Fetch thread info | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Fetch channel messages | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| List threads | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Fetch channel info | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
-| Post channel message | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Feature | Slack | Teams | Google Chat | Discord | Telegram | GitHub | Linear |
+|---------|-------|-------|-------------|---------|----------|--------|--------|
+| Fetch messages | ✅ | ✅ | ✅ | ✅ | ⚠️ Cached | ✅ | ✅ |
+| Fetch single message | ✅ | ❌ | ❌ | ❌ | ⚠️ Cached | ❌ | ❌ |
+| Fetch thread info | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Fetch channel messages | ✅ | ✅ | ✅ | ✅ | ⚠️ Cached | ✅ | ❌ |
+| List threads | ✅ | ✅ | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Fetch channel info | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Post channel message | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
 
 <Callout type="info">
 ⚠️ indicates partial support — the feature works with limitations. See individual adapter pages for details.
@@ -67,8 +67,23 @@ Adapters handle webhook verification, message parsing, and API calls for each pl
 | [Microsoft Teams](/docs/adapters/teams) | `@chat-adapter/teams` |
 | [Google Chat](/docs/adapters/gchat) | `@chat-adapter/gchat` |
 | [Discord](/docs/adapters/discord) | `@chat-adapter/discord` |
+| [Telegram](/docs/adapters/telegram) | `@chat-adapter/telegram` |
 | [GitHub](/docs/adapters/github) | `@chat-adapter/github` |
 | [Linear](/docs/adapters/linear) | `@chat-adapter/linear` |
+
+## Community adapters
+
+Beyond the Vercel-maintained adapters listed above, you can build adapters for any messaging platform. Community adapters use the same `Adapter` interface and get full access to Chat SDK features like cards, actions, streaming, and state management.
+
+| Tier | Description |
+|------|-------------|
+| Vercel-maintained | Published under `@chat-adapter/*` by Vercel |
+| Community official | Built and maintained by the platform company itself (e.g., Resend building a Resend adapter) |
+| Community | Built by third-party developers |
+
+Community adapters are expected to meet the same testing bar as first-party adapters — unit tests for all public methods, integration tests for end-to-end message flows.
+
+Ready to build one? Follow the [building](/docs/contributing/building) guide.
 
 ## How adapters work
 
