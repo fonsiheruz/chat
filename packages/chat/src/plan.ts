@@ -133,7 +133,7 @@ export class Plan implements PlanMessage {
   }
 
   async reset(options: StartPlanOptions): Promise<PlanTask | null> {
-    if (!this._bound || !this._isSupported()) {
+    if (!(this._bound && this._isSupported())) {
       return null;
     }
 
@@ -153,7 +153,7 @@ export class Plan implements PlanMessage {
   }
 
   async addTask(options: AddTaskOptions): Promise<PlanTask | null> {
-    if (!this._bound || !this._isSupported()) {
+    if (!(this._bound && this._isSupported())) {
       return null;
     }
     const title = contentToPlainText(options.title) || "Task";
@@ -176,7 +176,7 @@ export class Plan implements PlanMessage {
   }
 
   async updateTask(update?: UpdateTaskInput): Promise<PlanTask | null> {
-    if (!this._bound || !this._isSupported()) {
+    if (!(this._bound && this._isSupported())) {
       return null;
     }
     const current =
@@ -203,7 +203,7 @@ export class Plan implements PlanMessage {
   }
 
   async complete(options: CompletePlanOptions): Promise<void> {
-    if (!this._bound || !this._isSupported()) {
+    if (!(this._bound && this._isSupported())) {
       return;
     }
     for (const task of this._plan.tasks) {

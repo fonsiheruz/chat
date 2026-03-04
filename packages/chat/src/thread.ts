@@ -12,7 +12,7 @@ import {
   toPlainText,
 } from "./markdown";
 import { Message, type SerializedMessage } from "./message";
-import { isPlan, Plan } from "./plan";
+import { isPlan, type Plan } from "./plan";
 import { StreamingMarkdownRenderer } from "./streaming-markdown";
 import type {
   Adapter,
@@ -331,7 +331,11 @@ export class ThreadImpl<TState = Record<string, unknown>>
 
   async post(message: Plan): Promise<PlanMessage>;
   async post(
-    message: string | AdapterPostableMessage | AsyncIterable<string> | CardJSXElement
+    message:
+      | string
+      | AdapterPostableMessage
+      | AsyncIterable<string>
+      | CardJSXElement
   ): Promise<SentMessage>;
   async post(
     message: string | PostableMessage | CardJSXElement

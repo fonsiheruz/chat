@@ -1114,7 +1114,7 @@ describe("ThreadImpl", () => {
     // AdapterPostableMessage | CardJSXElement which excludes AsyncIterable<string>
   });
 
-describe("post with Plan", () => {
+  describe("post with Plan", () => {
     let thread: ThreadImpl;
     let mockAdapter: Adapter;
     let mockState: ReturnType<typeof createMockState>;
@@ -1133,7 +1133,7 @@ describe("post with Plan", () => {
 
     it("should return no-op PlanMessage when adapter does not support plans", async () => {
       // Adapter has no postPlan/editPlan methods by default
-      const plan = new Plan({ initialMessage: "Starting..." })
+      const plan = new Plan({ initialMessage: "Starting..." });
       await thread.post(plan);
 
       // Should still return a PlanMessage with inspectors working
@@ -1164,7 +1164,9 @@ describe("post with Plan", () => {
       mockAdapter.postPlan = mockPostPlan;
       mockAdapter.editPlan = mockEditPlan;
 
-      const plan = await thread.post(new Plan({ initialMessage: "Working..." }));
+      const plan = await thread.post(
+        new Plan({ initialMessage: "Working..." })
+      );
 
       expect(mockPostPlan).toHaveBeenCalledWith(
         "slack:C123:1234.5678",

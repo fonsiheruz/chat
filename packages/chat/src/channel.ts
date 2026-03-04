@@ -10,7 +10,7 @@ import {
   toPlainText,
 } from "./markdown";
 import { Message } from "./message";
-import { isPlan, Plan } from "./plan";
+import { isPlan, type Plan } from "./plan";
 import type {
   Adapter,
   AdapterPostableMessage,
@@ -243,7 +243,11 @@ export class ChannelImpl<TState = Record<string, unknown>>
 
   async post(message: Plan): Promise<PlanMessage>;
   async post(
-    message: string | AdapterPostableMessage | AsyncIterable<string> | CardJSXElement
+    message:
+      | string
+      | AdapterPostableMessage
+      | AsyncIterable<string>
+      | CardJSXElement
   ): Promise<SentMessage>;
   async post(
     message: string | PostableMessage | CardJSXElement

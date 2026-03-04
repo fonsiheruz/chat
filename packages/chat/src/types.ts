@@ -557,7 +557,11 @@ export interface Postable<
    */
   post(message: Plan): Promise<PlanMessage>;
   post(
-    message: string | AdapterPostableMessage | AsyncIterable<string> | CardJSXElement
+    message:
+      | string
+      | AdapterPostableMessage
+      | AsyncIterable<string>
+      | CardJSXElement
   ): Promise<SentMessage<TRawMessage>>;
 
   /**
@@ -754,7 +758,11 @@ export interface Thread<TState = Record<string, unknown>, TRawMessage = unknown>
    */
   post(message: Plan): Promise<PlanMessage>;
   post(
-    message: string | AdapterPostableMessage | AsyncIterable<string> | CardJSXElement
+    message:
+      | string
+      | AdapterPostableMessage
+      | AsyncIterable<string>
+      | CardJSXElement
   ): Promise<SentMessage<TRawMessage>>;
 
   /**
