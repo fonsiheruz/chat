@@ -795,19 +795,18 @@ export class TelegramAdapter
       }
 
       rawAccumulated += next.value;
-      renderedAccumulated = this.renderStreamMarkdown(rawAccumulated);
 
-      if (!renderedAccumulated.trim()) {
+      const now = Date.now();
+      const intervalElapsed =
+        draftUpdatesSent === 0 || now - lastDraftSentAt >= updateIntervalMs;
+
+      if (!intervalElapsed) {
         continue;
       }
 
-      const now = Date.now();
-      const shouldSendDraft =
-        draftUpdatesSent === 0 ||
-        (renderedAccumulated !== lastDraftText &&
-          now - lastDraftSentAt >= updateIntervalMs);
+      renderedAccumulated = this.renderStreamMarkdown(rawAccumulated);
 
-      if (!shouldSendDraft) {
+      if (!renderedAccumulated.trim() || renderedAccumulated === lastDraftText) {
         continue;
       }
 
