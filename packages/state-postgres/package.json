@@ -50,7 +50,6 @@
     "chat",
     "state",
     "postgres",
-    "drizzle",
     "production"
   ],
   "license": "MIT"
