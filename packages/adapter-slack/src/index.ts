@@ -2096,7 +2096,8 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
     data: unknown
   ): Promise<RawMessage<unknown>> {
     if (kind !== "plan") {
-      throw new Error(`Unsupported postable object kind: ${kind}`);
+      // Unsupported kind — post as plain text fallback
+      return this.postMessage(threadId, `[${kind}]`);
     }
 
     const plan = data as PlanModel;
@@ -2134,7 +2135,8 @@ export class SlackAdapter implements Adapter<SlackThreadId, unknown> {
     data: unknown
   ): Promise<RawMessage<unknown>> {
     if (kind !== "plan") {
-      throw new Error(`Unsupported postable object kind: ${kind}`);
+      // Unsupported kind — edit as plain text fallback
+      return this.editMessage(threadId, messageId, `[${kind}]`);
     }
 
     const plan = data as PlanModel;
