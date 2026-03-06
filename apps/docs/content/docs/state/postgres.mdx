@@ -81,3 +81,14 @@ All rows are namespaced by `key_prefix`.
 - Distributed locking across multiple instances
 - Key-value caching with TTL
 - Automatic table creation on first connect
+
+## Expired row cleanup
+
+Unlike Redis (which handles TTL expiry natively), PostgreSQL does not automatically delete expired rows. The adapter performs opportunistic cleanup — expired locks are overwritten on the next `acquireLock()` call, and expired cache entries are deleted on the next `get()` call for that key.
+
+For high-throughput deployments, you may want to run a periodic cleanup job:
+
+```sql
+DELETE FROM chat_state_locks WHERE expires_at <= now();
+DELETE FROM chat_state_cache WHERE expires_at <= now();
+```
