@@ -53,7 +53,7 @@ export const bot = new Chat<typeof adapters, ThreadState>({
 
 // AI agent for AI mode
 const agent = new ToolLoopAgent({
-  model: "anthropic/claude-4.5-haiku",
+  model: "anthropic/claude-4.5-sonnet",
   instructions:
     "You are a helpful assistant in a chat thread. Answer the user's queries in a concise manner.",
 });
@@ -65,21 +65,6 @@ bot.onNewMention(async (thread, message) => {
   // Check if user wants to enable AI mode (mention contains "AI")
   if (AI_MENTION_REGEX.test(message.text)) {
     await thread.setState({ aiMode: true });
-    await thread.post(
-      <Card title={`${emoji.sparkles} AI Mode Enabled`}>
-        <Text>
-          I'm now in AI mode! I'll use Claude to respond to your messages in
-          this thread.
-        </Text>
-        <Text>Say "disable AI" to turn off AI mode.</Text>
-        <Divider />
-        <Fields>
-          <Field label="Platform" value={thread.adapter.name} />
-          <Field label="Mode" value="AI Assistant" />
-        </Fields>
-      </Card>
-    );
-
     // Also respond to the initial message with AI
     await thread.startTyping("Thinking...");
     try {
