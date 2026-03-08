@@ -1829,6 +1829,8 @@ describe("Chat", () => {
       expect(mockState.forceReleaseLock).toHaveBeenCalledWith(
         "slack:C123:1234.5678"
       );
+      // Verify lock was re-acquired after force-release
+      expect(mockState.acquireLock).toHaveBeenCalledTimes(3);
       expect(handler).toHaveBeenCalled();
     });
 
