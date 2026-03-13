@@ -213,6 +213,57 @@ describe("MemoryStateAdapter", () => {
     });
   });
 
+  describe("removeFromList", () => {
+    it("should remove a value and return true", async () => {
+      await adapter.appendToList("list1", "a");
+      await adapter.appendToList("list1", "b");
+      await adapter.appendToList("list1", "c");
+
+      const removed = await adapter.removeFromList("list1", "b");
+
+      expect(removed).toBe(true);
+      expect(await adapter.getList("list1")).toEqual(["a", "c"]);
+    });
+
+    it("should return false for nonexistent key", async () => {
+      expect(await adapter.removeFromList("nope", "x")).toBe(false);
+    });
+
+    it("should return false when value not in list", async () => {
+      await adapter.appendToList("list1", "a");
+
+      expect(await adapter.removeFromList("list1", "z")).toBe(false);
+      expect(await adapter.getList("list1")).toEqual(["a"]);
+    });
+
+    it("should only remove the first occurrence", async () => {
+      await adapter.appendToList("list1", "a");
+      await adapter.appendToList("list1", "a");
+      await adapter.appendToList("list1", "b");
+
+      await adapter.removeFromList("list1", "a");
+
+      expect(await adapter.getList("list1")).toEqual(["a", "b"]);
+    });
+
+    it("should return false for expired list", async () => {
+      await adapter.appendToList("list1", "a", { ttlMs: 10 });
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(await adapter.removeFromList("list1", "a")).toBe(false);
+    });
+
+    it("should compare objects by value", async () => {
+      await adapter.appendToList("list1", { id: 1 });
+      await adapter.appendToList("list1", { id: 2 });
+
+      const removed = await adapter.removeFromList("list1", { id: 1 });
+
+      expect(removed).toBe(true);
+      expect(await adapter.getList("list1")).toEqual([{ id: 2 }]);
+    });
+  });
+
   describe("connection", () => {
     it("should throw when not connected", async () => {
       const newAdapter = createMemoryState();
