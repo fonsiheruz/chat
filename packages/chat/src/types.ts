@@ -598,6 +598,9 @@ export interface StateAdapter {
   /** Release a lock */
   releaseLock(lock: Lock): Promise<void>;
 
+  /** Remove the first occurrence of a value from a list. Returns true if removed. */
+  removeFromList(key: string, value: unknown): Promise<boolean>;
+
   /** Set a cached value with optional TTL in milliseconds */
   set<T = unknown>(key: string, value: T, ttlMs?: number): Promise<void>;
 

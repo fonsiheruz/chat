@@ -325,6 +325,25 @@ export class PostgresStateAdapter implements StateAdapter {
     return result.rows.map((row) => JSON.parse(row.value as string) as T);
   }
 
+  async removeFromList(key: string, value: unknown): Promise<boolean> {
+    this.ensureConnected();
+
+    const serialized = JSON.stringify(value);
+
+    const result = await this.pool.query(
+      `DELETE FROM chat_state_lists
+       WHERE ctid = (
+         SELECT ctid FROM chat_state_lists
+         WHERE key_prefix = $1 AND list_key = $2 AND value = $3
+           AND (expires_at IS NULL OR expires_at > now())
+         LIMIT 1
+       )`,
+      [this.keyPrefix, key, serialized]
+    );
+
+    return (result.rowCount ?? 0) > 0;
+  }
+
   getClient(): pg.Pool {
     return this.pool;
   }

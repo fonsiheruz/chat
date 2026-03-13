@@ -182,6 +182,23 @@ export function createMockState(): MockStateAdapter {
     getList: vi.fn().mockImplementation(async (key: string) => {
       return (cache.get(key) as unknown[]) ?? [];
     }),
+    removeFromList: vi
+      .fn()
+      .mockImplementation(async (key: string, value: unknown) => {
+        const list = (cache.get(key) as unknown[]) ?? [];
+        const serialized = JSON.stringify(value);
+        const index = list.findIndex(
+          (item) => JSON.stringify(item) === serialized
+        );
+
+        if (index === -1) {
+          return false;
+        }
+
+        list.splice(index, 1);
+        cache.set(key, list);
+        return true;
+      }),
   };
 }
 

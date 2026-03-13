@@ -227,6 +227,40 @@ export class MemoryStateAdapter implements StateAdapter {
     return [];
   }
 
+  async removeFromList(key: string, value: unknown): Promise<boolean> {
+    this.ensureConnected();
+
+    const cached = this.cache.get(key);
+    if (!cached) {
+      return false;
+    }
+
+    if (cached.expiresAt !== null && cached.expiresAt <= Date.now()) {
+      this.cache.delete(key);
+      return false;
+    }
+
+    if (!Array.isArray(cached.value)) {
+      return false;
+    }
+
+    const list = cached.value;
+    const serialized = JSON.stringify(value);
+    const index = list.findIndex((item) => JSON.stringify(item) === serialized);
+
+    if (index === -1) {
+      return false;
+    }
+
+    list.splice(index, 1);
+    this.cache.set(key, {
+      value: list,
+      expiresAt: cached.expiresAt,
+    });
+
+    return true;
+  }
+
   private ensureConnected(): void {
     if (!this.connected) {
       throw new Error(

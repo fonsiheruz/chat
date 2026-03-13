@@ -1193,6 +1193,23 @@ function createMockState(): StateAdapter & { cache: Map<string, unknown> } {
     getList: vi.fn().mockImplementation((key: string) => {
       return Promise.resolve((cache.get(key) as unknown[]) ?? []);
     }),
+    removeFromList: vi
+      .fn()
+      .mockImplementation((key: string, value: unknown) => {
+        const list = (cache.get(key) as unknown[]) ?? [];
+        const serialized = JSON.stringify(value);
+        const index = list.findIndex(
+          (item) => JSON.stringify(item) === serialized
+        );
+
+        if (index === -1) {
+          return Promise.resolve(false);
+        }
+
+        list.splice(index, 1);
+        cache.set(key, list);
+        return Promise.resolve(true);
+      }),
   };
 }
 

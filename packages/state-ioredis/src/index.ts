@@ -290,6 +290,22 @@ export class IoRedisStateAdapter implements StateAdapter {
     return values.map((v) => JSON.parse(v) as T);
   }
 
+  async removeFromList(key: string, value: unknown): Promise<boolean> {
+    this.ensureConnected();
+
+    const listKey = `${this.keyPrefix}:list:${key}`;
+    const serialized = JSON.stringify(value);
+
+    const script = `
+      local removed = redis.call("lrem", KEYS[1], 1, ARGV[1])
+      return removed
+    `;
+
+    const result = await this.client.eval(script, 1, listKey, serialized);
+
+    return (result as number) > 0;
+  }
+
   private ensureConnected(): void {
     if (!this.connected) {
       throw new Error(
