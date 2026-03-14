@@ -38,6 +38,7 @@ import type {
   LinqMessageFailedEvent,
   LinqRawMessage,
   LinqReactionEventBase,
+  LinqServiceType,
   LinqThreadId,
   LinqWebhookPayload,
 } from "./types";
@@ -71,6 +72,7 @@ export class LinqAdapter implements Adapter<LinqThreadId, LinqRawMessage> {
   private readonly apiToken: string;
   private readonly signingSecret?: string;
   private readonly phoneNumber?: string;
+  private readonly preferredService?: LinqServiceType;
   private readonly logger: Logger;
   private readonly formatConverter = new LinqFormatConverter();
   private readonly client: ReturnType<typeof createClient<paths>>;
@@ -99,6 +101,7 @@ export class LinqAdapter implements Adapter<LinqThreadId, LinqRawMessage> {
     this.signingSecret =
       config.signingSecret ?? process.env.LINQ_SIGNING_SECRET;
     this.phoneNumber = config.phoneNumber ?? process.env.LINQ_PHONE_NUMBER;
+    this.preferredService = config.preferredService;
     this.logger = config.logger ?? new ConsoleLogger("info").child("linq");
     this._userName = config.userName ?? "bot";
 
@@ -235,6 +238,7 @@ export class LinqAdapter implements Adapter<LinqThreadId, LinqRawMessage> {
         body: {
           message: {
             parts: parts as [{ type: "text"; value: string }],
+            preferred_service: this.preferredService,
           },
         },
       }
@@ -490,6 +494,7 @@ export class LinqAdapter implements Adapter<LinqThreadId, LinqRawMessage> {
         // Linq API requires a message to create a chat
         message: {
           parts: [{ type: "text", value: " " }],
+          preferred_service: this.preferredService,
         },
       },
     });
@@ -1030,6 +1035,7 @@ export type {
   LinqRawMessage,
   LinqReactionEventBase,
   LinqReactionType,
+  LinqServiceType,
   LinqThreadId,
   LinqWebhookEventType,
   LinqWebhookPayload,

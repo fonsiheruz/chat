@@ -1,10 +1,13 @@
 import type { Logger } from "chat";
 import type { components } from "./schema";
 
+export type LinqServiceType = components["schemas"]["ServiceType"];
+
 export interface LinqAdapterConfig {
   apiToken?: string;
   logger?: Logger;
   phoneNumber?: string;
+  preferredService?: LinqServiceType;
   signingSecret?: string;
   userName?: string;
 }

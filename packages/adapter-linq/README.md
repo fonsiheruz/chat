@@ -53,6 +53,7 @@ All options are auto-detected from environment variables when not provided.
 | `apiToken` | No* | Linq API token. Auto-detected from `LINQ_API_TOKEN` |
 | `signingSecret` | No | Webhook signing secret for signature verification. Auto-detected from `LINQ_SIGNING_SECRET` |
 | `phoneNumber` | No | Bot phone number, required for `openDM` and `listThreads`. Auto-detected from `LINQ_PHONE_NUMBER` |
+| `preferredService` | No | Preferred messaging service: `"iMessage"`, `"SMS"`, or `"RCS"`. Defaults to auto fallback (iMessage → RCS → SMS) |
 | `userName` | No | Bot display name (defaults to `"bot"`) |
 | `logger` | No | Logger instance (defaults to `ConsoleLogger("info")`) |
 

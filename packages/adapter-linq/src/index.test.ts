@@ -1041,6 +1041,70 @@ describe("botUserId", () => {
   });
 });
 
+describe("postMessage with preferredService", () => {
+  it("sends preferred_service in the request body", async () => {
+    const adapter = new LinqAdapter({
+      apiToken: "test-token",
+      preferredService: "iMessage",
+      logger: mockLogger,
+    });
+    await adapter.initialize(createMockChat());
+
+    mockFetch.mockResolvedValueOnce(
+      linqOk(
+        {
+          chat_id: "chat-123",
+          message: {
+            id: "msg-ps",
+            parts: [{ type: "text", value: "Hello" }],
+            status: "queued",
+            created_at: "2025-01-01T00:00:00Z",
+          },
+        },
+        202
+      )
+    );
+
+    await adapter.postMessage("linq:chat-123", "Hello");
+
+    const fetchCall = mockFetch.mock.calls[0];
+    const requestBody = JSON.parse(
+      // openapi-fetch passes a Request object
+      await (fetchCall[0] as Request).text()
+    );
+    expect(requestBody.message.preferred_service).toBe("iMessage");
+  });
+
+  it("omits preferred_service when not configured", async () => {
+    const adapter = new LinqAdapter({
+      apiToken: "test-token",
+      logger: mockLogger,
+    });
+    await adapter.initialize(createMockChat());
+
+    mockFetch.mockResolvedValueOnce(
+      linqOk(
+        {
+          chat_id: "chat-123",
+          message: {
+            id: "msg-no-ps",
+            parts: [{ type: "text", value: "Hello" }],
+            status: "queued",
+            created_at: "2025-01-01T00:00:00Z",
+          },
+        },
+        202
+      )
+    );
+
+    await adapter.postMessage("linq:chat-123", "Hello");
+
+    const fetchCall = mockFetch.mock.calls[0];
+    const requestBody = JSON.parse(await (fetchCall[0] as Request).text());
+    expect(requestBody.message.preferred_service).toBeUndefined();
+  });
+});
+
 describe("postMessage with file attachments", () => {
   it("uploads files and includes attachment_id in message parts", async () => {
     const adapter = new LinqAdapter({
