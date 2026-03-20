@@ -494,6 +494,73 @@ describe("PostgresStateAdapter", () => {
     });
 
     describe("enqueue / dequeue / queueDepth", () => {
+      it("should purge expired entries before enqueue", async () => {
+        queryRows = [{ depth: "1" }];
+        const entry = {
+          message: { id: "m1" },
+          enqueuedAt: Date.now(),
+          expiresAt: Date.now() + 90000,
+        };
+        await adapter.enqueue("thread1", entry as never, 10);
+
+        const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls;
+        const purgeCall = calls.find(
+          (c: unknown[]) =>
+            typeof c[0] === "string" &&
+            c[0].includes("DELETE FROM chat_state_queues") &&
+            c[0].includes("expires_at <= now()")
+        );
+        expect(purgeCall).toBeTruthy();
+      });
+
+      it("should purge expired entries before dequeue", async () => {
+        queryRows = [];
+        await adapter.dequeue("thread1");
+
+        const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls;
+        const purgeCall = calls.find(
+          (c: unknown[]) =>
+            typeof c[0] === "string" &&
+            c[0].includes("DELETE FROM chat_state_queues") &&
+            c[0].includes("expires_at <= now()")
+        );
+        expect(purgeCall).toBeTruthy();
+      });
+
+      it("should only count non-expired entries in queueDepth", async () => {
+        queryRows = [{ depth: "2" }];
+        await adapter.queueDepth("thread1");
+
+        const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls;
+        const countCall = calls.find(
+          (c: unknown[]) =>
+            typeof c[0] === "string" &&
+            c[0].includes("count(*)") &&
+            c[0].includes("expires_at > now()")
+        );
+        expect(countCall).toBeTruthy();
+      });
+
+      it("should only count non-expired entries in enqueue depth", async () => {
+        queryRows = [{ depth: "1" }];
+        const entry = {
+          message: { id: "m1" },
+          enqueuedAt: Date.now(),
+          expiresAt: Date.now() + 90000,
+        };
+        await adapter.enqueue("thread1", entry as never, 10);
+
+        const calls = (pool.query as ReturnType<typeof vi.fn>).mock.calls;
+        const countCall = calls.find(
+          (c: unknown[]) =>
+            typeof c[0] === "string" &&
+            c[0].includes("count(*)") &&
+            c[0].includes("chat_state_queues") &&
+            c[0].includes("expires_at > now()")
+        );
+        expect(countCall).toBeTruthy();
+      });
+
       it("should call INSERT for enqueue", async () => {
         queryRows = [{ depth: "1" }];
         const entry = {

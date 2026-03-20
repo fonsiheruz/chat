@@ -335,6 +335,13 @@ export class PostgresStateAdapter implements StateAdapter {
     const serialized = JSON.stringify(entry);
     const expiresAt = new Date(entry.expiresAt);
 
+    // Purge expired entries first to avoid phantom queue pressure
+    await this.pool.query(
+      `DELETE FROM chat_state_queues
+       WHERE key_prefix = $1 AND thread_id = $2 AND expires_at <= now()`,
+      [this.keyPrefix, threadId]
+    );
+
     // Insert the new entry
     await this.pool.query(
       `INSERT INTO chat_state_queues (key_prefix, thread_id, value, expires_at)
@@ -342,17 +349,19 @@ export class PostgresStateAdapter implements StateAdapter {
       [this.keyPrefix, threadId, serialized, expiresAt]
     );
 
-    // Trim overflow (keep newest maxSize entries)
+    // Trim overflow (keep newest maxSize non-expired entries)
     if (maxSize > 0) {
       await this.pool.query(
         `DELETE FROM chat_state_queues
          WHERE key_prefix = $1 AND thread_id = $2 AND seq IN (
            SELECT seq FROM chat_state_queues
            WHERE key_prefix = $1 AND thread_id = $2
+             AND expires_at > now()
            ORDER BY seq ASC
            OFFSET 0
            LIMIT GREATEST(
-             (SELECT count(*) FROM chat_state_queues WHERE key_prefix = $1 AND thread_id = $2) - $3,
+             (SELECT count(*) FROM chat_state_queues
+              WHERE key_prefix = $1 AND thread_id = $2 AND expires_at > now()) - $3,
              0
            )
          )`,
@@ -360,10 +369,10 @@ export class PostgresStateAdapter implements StateAdapter {
       );
     }
 
-    // Return current depth
+    // Return current non-expired depth
     const result = await this.pool.query(
       `SELECT count(*) as depth FROM chat_state_queues
-       WHERE key_prefix = $1 AND thread_id = $2`,
+       WHERE key_prefix = $1 AND thread_id = $2 AND expires_at > now()`,
       [this.keyPrefix, threadId]
     );
 
@@ -373,13 +382,21 @@ export class PostgresStateAdapter implements StateAdapter {
   async dequeue(threadId: string): Promise<QueueEntry | null> {
     this.ensureConnected();
 
-    // Atomically select + delete the oldest entry
+    // Purge expired entries first
+    await this.pool.query(
+      `DELETE FROM chat_state_queues
+       WHERE key_prefix = $1 AND thread_id = $2 AND expires_at <= now()`,
+      [this.keyPrefix, threadId]
+    );
+
+    // Atomically select + delete the oldest non-expired entry
     const result = await this.pool.query(
       `DELETE FROM chat_state_queues
        WHERE key_prefix = $1 AND thread_id = $2
          AND seq = (
            SELECT seq FROM chat_state_queues
            WHERE key_prefix = $1 AND thread_id = $2
+             AND expires_at > now()
            ORDER BY seq ASC
            LIMIT 1
          )
@@ -399,7 +416,7 @@ export class PostgresStateAdapter implements StateAdapter {
 
     const result = await this.pool.query(
       `SELECT count(*) as depth FROM chat_state_queues
-       WHERE key_prefix = $1 AND thread_id = $2`,
+       WHERE key_prefix = $1 AND thread_id = $2 AND expires_at > now()`,
       [this.keyPrefix, threadId]
     );
 
