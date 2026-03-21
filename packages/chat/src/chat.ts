@@ -28,6 +28,7 @@ import type {
   DirectMessageHandler,
   EmojiValue,
   Lock,
+  LockScope,
   Logger,
   LogLevel,
   MemberJoinedChannelEvent,
@@ -202,6 +203,7 @@ export class Chat<
   private readonly _concurrencyConfig: Required<
     Omit<ConcurrencyConfig, "strategy">
   >;
+  private readonly _lockScope: ChatConfig["lockScope"];
 
   private readonly mentionHandlers: MentionHandler<TState>[] = [];
   private readonly directMessageHandlers: DirectMessageHandler<TState>[] = [];
@@ -243,6 +245,7 @@ export class Chat<
         : "...";
     this._dedupeTtlMs = config.dedupeTtlMs ?? DEDUPE_TTL_MS;
     this._onLockConflict = config.onLockConflict;
+    this._lockScope = config.lockScope;
 
     // Parse concurrency config — new `concurrency` option takes precedence over deprecated `onLockConflict`
     const concurrency = config.concurrency;
@@ -1559,6 +1562,33 @@ export class Chat<
   }
 
   /**
+   * Resolve the lock key for a message based on lock scope.
+   * With 'thread' scope, returns threadId. With 'channel' scope,
+   * returns channelId (derived via adapter.channelIdFromThreadId).
+   */
+  private async getLockKey(
+    adapter: Adapter,
+    threadId: string
+  ): Promise<string> {
+    const channelId = adapter.channelIdFromThreadId(threadId);
+
+    let scope: LockScope;
+    if (typeof this._lockScope === "function") {
+      const isDM = adapter.isDM?.(threadId) ?? false;
+      scope = await this._lockScope({
+        adapter,
+        channelId,
+        isDM,
+        threadId,
+      });
+    } else {
+      scope = this._lockScope ?? adapter.lockScope ?? "thread";
+    }
+
+    return scope === "channel" ? channelId : threadId;
+  }
+
+  /**
    * Handle an incoming message from an adapter.
    * This is called by adapters when they receive a webhook.
    *
@@ -1622,6 +1652,9 @@ export class Chat<
       await Promise.all(appends);
     }
 
+    // Resolve lock key based on lock scope (thread vs channel)
+    const lockKey = await this.getLockKey(adapter, threadId);
+
     // Route to the appropriate concurrency strategy
     const strategy = this._concurrencyStrategy;
 
@@ -1631,12 +1664,18 @@ export class Chat<
     }
 
     if (strategy === "queue" || strategy === "debounce") {
-      await this.handleQueueOrDebounce(adapter, threadId, message, strategy);
+      await this.handleQueueOrDebounce(
+        adapter,
+        threadId,
+        lockKey,
+        message,
+        strategy
+      );
       return;
     }
 
     // Default: 'drop' strategy (original behavior)
-    await this.handleDrop(adapter, threadId, message);
+    await this.handleDrop(adapter, threadId, lockKey, message);
   }
 
   /**
@@ -1645,10 +1684,11 @@ export class Chat<
   private async handleDrop(
     adapter: Adapter,
     threadId: string,
+    lockKey: string,
     message: Message
   ): Promise<void> {
     let lock = await this._stateAdapter.acquireLock(
-      threadId,
+      lockKey,
       DEFAULT_LOCK_TTL_MS
     );
     if (!lock) {
@@ -1658,28 +1698,38 @@ export class Chat<
           ? await this._onLockConflict(threadId, message)
           : (this._onLockConflict ?? "drop");
       if (resolution === "force") {
-        this.logger.info("Force-releasing lock on thread", { threadId });
-        await this._stateAdapter.forceReleaseLock(threadId);
-        lock = await this._stateAdapter.acquireLock(
+        this.logger.info("Force-releasing lock on thread", {
           threadId,
+          lockKey,
+        });
+        await this._stateAdapter.forceReleaseLock(lockKey);
+        lock = await this._stateAdapter.acquireLock(
+          lockKey,
           DEFAULT_LOCK_TTL_MS
         );
       }
       if (!lock) {
-        this.logger.warn("Could not acquire lock on thread", { threadId });
+        this.logger.warn("Could not acquire lock on thread", {
+          threadId,
+          lockKey,
+        });
         throw new LockError(
           `Could not acquire lock on thread ${threadId}. Another instance may be processing.`
         );
       }
     }
 
-    this.logger.debug("Lock acquired", { threadId, token: lock.token });
+    this.logger.debug("Lock acquired", {
+      threadId,
+      lockKey,
+      token: lock.token,
+    });
 
     try {
       await this.dispatchToHandlers(adapter, threadId, message);
     } finally {
       await this._stateAdapter.releaseLock(lock);
-      this.logger.debug("Lock released", { threadId });
+      this.logger.debug("Lock released", { threadId, lockKey });
     }
   }
 
@@ -1689,6 +1739,7 @@ export class Chat<
   private async handleQueueOrDebounce(
     adapter: Adapter,
     threadId: string,
+    lockKey: string,
     message: Message,
     strategy: "queue" | "debounce"
   ): Promise<void> {
@@ -1697,14 +1748,14 @@ export class Chat<
 
     // Try to acquire lock
     const lock = await this._stateAdapter.acquireLock(
-      threadId,
+      lockKey,
       DEFAULT_LOCK_TTL_MS
     );
 
     if (!lock) {
       // Lock is busy — enqueue this message for later processing
       const effectiveMaxSize = strategy === "debounce" ? 1 : maxQueueSize;
-      const depth = await this._stateAdapter.queueDepth(threadId);
+      const depth = await this._stateAdapter.queueDepth(lockKey);
 
       if (
         depth >= effectiveMaxSize &&
@@ -1713,6 +1764,7 @@ export class Chat<
       ) {
         this.logger.info("message-dropped", {
           threadId,
+          lockKey,
           messageId: message.id,
           reason: "queue-full",
         });
@@ -1720,7 +1772,7 @@ export class Chat<
       }
 
       await this._stateAdapter.enqueue(
-        threadId,
+        lockKey,
         {
           message,
           enqueuedAt: Date.now(),
@@ -1733,6 +1785,7 @@ export class Chat<
         strategy === "debounce" ? "message-debounce-reset" : "message-queued",
         {
           threadId,
+          lockKey,
           messageId: message.id,
           queueDepth: Math.min(depth + 1, effectiveMaxSize),
         }
@@ -1741,13 +1794,17 @@ export class Chat<
     }
 
     // We hold the lock
-    this.logger.debug("Lock acquired", { threadId, token: lock.token });
+    this.logger.debug("Lock acquired", {
+      threadId,
+      lockKey,
+      token: lock.token,
+    });
 
     try {
       if (strategy === "debounce") {
         // Debounce: enqueue our own message and enter the debounce loop
         await this._stateAdapter.enqueue(
-          threadId,
+          lockKey,
           {
             message,
             enqueuedAt: Date.now(),
@@ -1757,18 +1814,19 @@ export class Chat<
         );
         this.logger.info("message-debouncing", {
           threadId,
+          lockKey,
           messageId: message.id,
           debounceMs,
         });
-        await this.debounceLoop(lock, adapter, threadId);
+        await this.debounceLoop(lock, adapter, threadId, lockKey);
       } else {
         // Queue: process our message immediately, then drain any queued messages
         await this.dispatchToHandlers(adapter, threadId, message);
-        await this.drainQueue(lock, adapter, threadId);
+        await this.drainQueue(lock, adapter, threadId, lockKey);
       }
     } finally {
       await this._stateAdapter.releaseLock(lock);
-      this.logger.debug("Lock released", { threadId });
+      this.logger.debug("Lock released", { threadId, lockKey });
     }
   }
 
@@ -1779,7 +1837,8 @@ export class Chat<
   private async debounceLoop(
     lock: Lock,
     adapter: Adapter,
-    threadId: string
+    threadId: string,
+    lockKey: string
   ): Promise<void> {
     const { debounceMs } = this._concurrencyConfig;
 
@@ -1788,7 +1847,7 @@ export class Chat<
       await this._stateAdapter.extendLock(lock, DEFAULT_LOCK_TTL_MS);
 
       // Atomically take the pending message
-      const entry = await this._stateAdapter.dequeue(threadId);
+      const entry = await this._stateAdapter.dequeue(lockKey);
       if (!entry) {
         break;
       }
@@ -1796,17 +1855,19 @@ export class Chat<
       if (Date.now() > entry.expiresAt) {
         this.logger.info("message-expired", {
           threadId,
+          lockKey,
           messageId: entry.message.id,
         });
         continue;
       }
 
       // Check if anything new arrived during sleep
-      const depth = await this._stateAdapter.queueDepth(threadId);
+      const depth = await this._stateAdapter.queueDepth(lockKey);
       if (depth > 0) {
         // Newer message superseded this one — loop again
         this.logger.info("message-superseded", {
           threadId,
+          lockKey,
           droppedId: entry.message.id,
         });
         continue;
@@ -1815,6 +1876,7 @@ export class Chat<
       // Nothing new — this is the final message in the burst
       this.logger.info("message-dequeued", {
         threadId,
+        lockKey,
         messageId: entry.message.id,
       });
       await this.dispatchToHandlers(adapter, threadId, entry.message);
@@ -1829,13 +1891,14 @@ export class Chat<
   private async drainQueue(
     lock: Lock,
     adapter: Adapter,
-    threadId: string
+    threadId: string,
+    lockKey: string
   ): Promise<void> {
     while (true) {
       // Collect all pending messages
       const pending: QueueEntry[] = [];
       while (true) {
-        const entry = await this._stateAdapter.dequeue(threadId);
+        const entry = await this._stateAdapter.dequeue(lockKey);
         if (!entry) {
           break;
         }
@@ -1844,6 +1907,7 @@ export class Chat<
         } else {
           this.logger.info("message-expired", {
             threadId,
+            lockKey,
             messageId: entry.message.id,
           });
         }
@@ -1865,6 +1929,7 @@ export class Chat<
 
       this.logger.info("message-dequeued", {
         threadId,
+        lockKey,
         messageId: latest.message.id,
         skippedCount: skipped.length,
         totalSinceLastHandler: pending.length,

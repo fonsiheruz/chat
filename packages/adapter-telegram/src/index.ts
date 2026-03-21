@@ -189,6 +189,7 @@ export class TelegramAdapter
   implements Adapter<TelegramThreadId, TelegramRawMessage>
 {
   readonly name = "telegram";
+  readonly lockScope = "channel" as const;
   readonly persistMessageHistory = true;
 
   private readonly botToken: string;

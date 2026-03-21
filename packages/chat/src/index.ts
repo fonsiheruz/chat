@@ -290,6 +290,8 @@ export type {
   ListThreadsOptions,
   ListThreadsResult,
   Lock,
+  LockScope,
+  LockScopeContext,
   Logger,
   LogLevel,
   MarkdownTextChunk,

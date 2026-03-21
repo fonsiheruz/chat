@@ -66,6 +66,19 @@ export interface ChatConfig<
    */
   fallbackStreamingPlaceholderText?: string | null;
   /**
+   * Lock scope determines which messages contend for the same lock.
+   *
+   * - `'thread'`: lock per threadId (default for most adapters)
+   * - `'channel'`: lock per channelId (default for WhatsApp, Telegram)
+   * - function: resolve scope dynamically per message (async supported)
+   *
+   * When not set, falls back to the adapter's `lockScope` property,
+   * then to `'thread'`.
+   */
+  lockScope?:
+    | LockScope
+    | ((context: LockScopeContext) => LockScope | Promise<LockScope>);
+  /**
    * Logger instance or log level.
    * Pass "silent" to disable all logging.
    */
@@ -265,6 +278,15 @@ export interface Adapter<TThreadId = unknown, TRawMessage = unknown> {
     channelId: string,
     options?: ListThreadsOptions
   ): Promise<ListThreadsResult<TRawMessage>>;
+
+  /**
+   * Default lock scope for this adapter.
+   * - `'thread'` (default): lock per threadId
+   * - `'channel'`: lock per channelId (for channel-based platforms like WhatsApp, Telegram)
+   *
+   * Can be overridden by `ChatConfig.lockScope`.
+   */
+  readonly lockScope?: LockScope;
   /** Unique name for this adapter (e.g., "slack", "teams") */
   readonly name: string;
 
@@ -576,6 +598,17 @@ export interface ChatInstance {
 // =============================================================================
 // Concurrency
 // =============================================================================
+
+/** Lock scope determines which messages contend for the same lock. */
+export type LockScope = "thread" | "channel";
+
+/** Context provided to the lockScope resolver function. */
+export interface LockScopeContext {
+  adapter: Adapter;
+  channelId: string;
+  isDM: boolean;
+  threadId: string;
+}
 
 /** Concurrency strategy for overlapping messages on the same thread. */
 export type ConcurrencyStrategy = "drop" | "queue" | "debounce" | "concurrent";

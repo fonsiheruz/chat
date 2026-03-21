@@ -2854,6 +2854,159 @@ describe("Chat", () => {
     });
   });
 
+  describe("lockScope", () => {
+    it("should use threadId as lock key with default (thread) scope", async () => {
+      const state = createMockState();
+      const adapter = createMockAdapter("slack");
+
+      const chat2 = new Chat({
+        userName: "testbot",
+        adapters: { slack: adapter },
+        state,
+        logger: mockLogger,
+      });
+
+      await chat2.webhooks.slack(
+        new Request("http://test.com", { method: "POST" })
+      );
+
+      chat2.onNewMention(vi.fn().mockResolvedValue(undefined));
+
+      const msg = createTestMessage("msg-ls-1", "Hey @slack-bot");
+      await chat2.handleIncomingMessage(adapter, "slack:C123:1234.5678", msg);
+
+      // Lock should have been acquired on the full threadId
+      expect(state.acquireLock).toHaveBeenCalledWith(
+        "slack:C123:1234.5678",
+        expect.any(Number)
+      );
+    });
+
+    it("should use channelId as lock key with channel scope on adapter", async () => {
+      const state = createMockState();
+      const adapter = createMockAdapter("telegram");
+      (adapter as { lockScope: string }).lockScope = "channel";
+
+      const chat2 = new Chat({
+        userName: "testbot",
+        adapters: { telegram: adapter },
+        state,
+        logger: mockLogger,
+      });
+
+      await chat2.webhooks.telegram(
+        new Request("http://test.com", { method: "POST" })
+      );
+
+      chat2.onNewMention(vi.fn().mockResolvedValue(undefined));
+
+      const msg = createTestMessage("msg-ls-2", "Hey @telegram-bot");
+      await chat2.handleIncomingMessage(adapter, "telegram:C123:topic456", msg);
+
+      // channelIdFromThreadId returns first two parts: "telegram:C123"
+      expect(state.acquireLock).toHaveBeenCalledWith(
+        "telegram:C123",
+        expect.any(Number)
+      );
+    });
+
+    it("should use channelId as lock key with channel scope on config", async () => {
+      const state = createMockState();
+      const adapter = createMockAdapter("slack");
+
+      const chat2 = new Chat({
+        userName: "testbot",
+        adapters: { slack: adapter },
+        state,
+        logger: mockLogger,
+        lockScope: "channel",
+      });
+
+      await chat2.webhooks.slack(
+        new Request("http://test.com", { method: "POST" })
+      );
+
+      chat2.onNewMention(vi.fn().mockResolvedValue(undefined));
+
+      const msg = createTestMessage("msg-ls-3", "Hey @slack-bot");
+      await chat2.handleIncomingMessage(adapter, "slack:C123:1234.5678", msg);
+
+      // channelIdFromThreadId returns "slack:C123"
+      expect(state.acquireLock).toHaveBeenCalledWith(
+        "slack:C123",
+        expect.any(Number)
+      );
+    });
+
+    it("should support async lockScope resolver function", async () => {
+      const state = createMockState();
+      const adapter = createMockAdapter("telegram");
+
+      const chat2 = new Chat({
+        userName: "testbot",
+        adapters: { telegram: adapter },
+        state,
+        logger: mockLogger,
+        lockScope: async ({ isDM }) => {
+          // Simulate async lookup (e.g., checking channel config in DB)
+          return isDM ? "thread" : "channel";
+        },
+      });
+
+      await chat2.webhooks.telegram(
+        new Request("http://test.com", { method: "POST" })
+      );
+
+      chat2.onNewMention(vi.fn().mockResolvedValue(undefined));
+
+      // Non-DM: should use channel scope
+      const msg = createTestMessage("msg-ls-4", "Hey @telegram-bot");
+      await chat2.handleIncomingMessage(adapter, "telegram:C123:topic456", msg);
+
+      expect(state.acquireLock).toHaveBeenCalledWith(
+        "telegram:C123",
+        expect.any(Number)
+      );
+    });
+
+    it("should queue on channel-scoped lock key", async () => {
+      const state = createMockState();
+      const adapter = createMockAdapter("telegram");
+      (adapter as { lockScope: string }).lockScope = "channel";
+
+      const chat2 = new Chat({
+        userName: "testbot",
+        adapters: { telegram: adapter },
+        state,
+        logger: mockLogger,
+        concurrency: "queue",
+      });
+
+      await chat2.webhooks.telegram(
+        new Request("http://test.com", { method: "POST" })
+      );
+
+      chat2.onNewMention(vi.fn().mockResolvedValue(undefined));
+
+      // Pre-hold the channel lock to force the second message to enqueue
+      await state.acquireLock("telegram:C123", 30000);
+
+      // Both messages from different topics should use the channel lock key
+      const msg1 = createTestMessage("msg-ls-5", "Hey @telegram-bot first");
+      await chat2.handleIncomingMessage(adapter, "telegram:C123:topic1", msg1);
+
+      const msg2 = createTestMessage("msg-ls-6", "Hey @telegram-bot second");
+      await chat2.handleIncomingMessage(adapter, "telegram:C123:topic2", msg2);
+
+      // Both should have been enqueued on the channel key (not topic keys)
+      const enqueueCalls = state.enqueue.mock.calls;
+      expect(enqueueCalls.length).toBe(2);
+      for (const call of enqueueCalls) {
+        expect(call[0]).toBe("telegram:C123");
+      }
+    });
+  });
+
   describe("persistMessageHistory", () => {
     it("should cache incoming messages when adapter has persistMessageHistory", async () => {
       const adapter = createMockAdapter("whatsapp");
