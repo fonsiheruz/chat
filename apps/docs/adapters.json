@@ -187,11 +187,8 @@
     "slug": "instagram",
     "type": "platform",
     "icon": "instagram",
-    "community": true,
-    "description": "Community Instagram adapter for Chat SDK with webhook-driven Instagram DM support.",
-    "packageName": "chat-adapter-instagram",
-    "author": "fonsiheruz",
-    "readme": "https://github.com/fonsiheruz/chat-adapter-instagram"
+    "description": "Build bots for Instagram direct messages and automated customer interactions.",
+    "comingSoon": true
   },
   {
     "name": "Signal",

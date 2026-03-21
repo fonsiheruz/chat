@@ -7,6 +7,10 @@ import {
   type GoogleChatAdapter,
 } from "@chat-adapter/gchat";
 import { createGitHubAdapter, type GitHubAdapter } from "@chat-adapter/github";
+import {
+  createInstagramAdapter,
+  type InstagramAdapter,
+} from "@chat-adapter/instagram";
 import { createLinearAdapter, type LinearAdapter } from "@chat-adapter/linear";
 import { createSlackAdapter, type SlackAdapter } from "@chat-adapter/slack";
 import { createTeamsAdapter, type TeamsAdapter } from "@chat-adapter/teams";
@@ -28,6 +32,7 @@ export interface Adapters {
   discord?: DiscordAdapter;
   gchat?: GoogleChatAdapter;
   github?: GitHubAdapter;
+  instagram?: InstagramAdapter;
   linear?: LinearAdapter;
   slack?: SlackAdapter;
   teams?: TeamsAdapter;
@@ -82,6 +87,16 @@ const GITHUB_METHODS = [
   "deleteMessage",
   "addReaction",
   "removeReaction",
+  "fetchMessages",
+];
+const INSTAGRAM_METHODS = [
+  "postMessage",
+  "editMessage",
+  "deleteMessage",
+  "addReaction",
+  "removeReaction",
+  "startTyping",
+  "openDM",
   "fetchMessages",
 ];
 const LINEAR_METHODS = [
@@ -199,6 +214,24 @@ export function buildAdapters(): Adapters {
     } catch {
       console.warn(
         "[chat] Failed to create github adapter (check GITHUB_TOKEN or GITHUB_APP_ID/PRIVATE_KEY)"
+      );
+    }
+  }
+
+  // Instagram adapter (optional) - env vars: INSTAGRAM_ACCESS_TOKEN, INSTAGRAM_APP_SECRET, INSTAGRAM_PAGE_ID, INSTAGRAM_VERIFY_TOKEN
+  if (process.env.INSTAGRAM_ACCESS_TOKEN && process.env.INSTAGRAM_PAGE_ID) {
+    try {
+      adapters.instagram = withRecording(
+        createInstagramAdapter({
+          logger: logger.child("instagram"),
+        }),
+        "instagram",
+        INSTAGRAM_METHODS
+      );
+    } catch (err) {
+      console.warn(
+        "[chat] Failed to create instagram adapter:",
+        err instanceof Error ? err.message : err
       );
     }
   }
