@@ -1111,6 +1111,13 @@ export interface Thread<TState = Record<string, unknown>, TRawMessage = unknown>
    * const result = await agent.stream({ prompt: message.text });
    * await thread.post(result.textStream);
    *
+   * // Stream with options via StreamingPlan PostableObject
+   * const stream = new StreamingPlan(result.fullStream, {
+   *   groupTasks: "plan",
+   *   endWith: [feedbackBlocks],
+   * });
+   * await thread.post(stream);
+   *
    * // Plan with live updates
    * const plan = new Plan({ initialMessage: "Working..." });
    * await thread.post(plan);
